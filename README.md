@@ -7,11 +7,11 @@ xud network simulation framework and integration tests
 Requirements:
 
 * Golang version >= 1.11
-* dep
 
 Installation:
 
 ```bash
+go get -u github.com/golang/dep/cmd/dep
 go get -d github.com/ExchangeUnion/xud-simulation
 dep ensure
 ```
