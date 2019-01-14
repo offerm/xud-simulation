@@ -234,7 +234,7 @@ func TestExchangeUnionDaemon(t *testing.T) {
 	}
 	t.Logf("ltcd: %d blocks generated", numBlocks)
 
-	lndLtcNetworkHarness, err = lntest.NewNetworkHarness(ltcdHarness, "bitcoin")
+	lndLtcNetworkHarness, err = lntest.NewNetworkHarness(ltcdHarness, "litecoin")
 	if err != nil {
 		ht.Fatalf("lnd-ltc: unable to create network harness: %v", err)
 	}
