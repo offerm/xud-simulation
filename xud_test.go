@@ -5,7 +5,6 @@ import (
 	"github.com/ExchangeUnion/xud-simulation/lntest"
 	"github.com/ExchangeUnion/xud-simulation/xudrpc"
 	"github.com/ExchangeUnion/xud-simulation/xudtest"
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/go-errors/errors"
 	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
 	ltcchainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
@@ -67,11 +66,11 @@ func testVerifyConnectivity(net *xudtest.NetworkHarness, ht *harnessTest) {
 		ht.Fatalf("lnd-ltc not connected")
 	}
 
-	if len(info.Lndbtc.Chains) != 1 || info.Lndbtc.Chains[0]  != "bitcoin" {
+	if len(info.Lndbtc.Chains) != 1 || info.Lndbtc.Chains[0] != "bitcoin" {
 		ht.Fatalf("incorrect lnd-btc chain: %v", info.Lndbtc.Chains[0])
 	}
 
-	if len(info.Lndltc.Chains) != 1 || info.Lndltc.Chains[0]  != "litecoin" {
+	if len(info.Lndltc.Chains) != 1 || info.Lndltc.Chains[0] != "litecoin" {
 		ht.Fatalf("incorrect lnd-ltc chain: %v", info.Lndbtc.Chains[0])
 	}
 }
@@ -115,9 +114,74 @@ func (h *harnessTest) RunTestCase(testCase *testCase, net *xudtest.NetworkHarnes
 	return
 }
 
-
 func TestExchangeUnionDaemon(t *testing.T) {
 	ht := newHarnessTest(t)
+
+	// LND-LTC network
+
+	var lndLtcNetworkHarness *lntest.NetworkHarness
+
+	ltcHandlers := &ltcclient.NotificationHandlers{
+		OnTxAccepted: func(hash *ltcchainhash.Hash, amt ltcutil.Amount) {
+			newHash := new(lntest.Hash)
+			copy(newHash[:], hash[:])
+			lndLtcNetworkHarness.OnTxAccepted(newHash)
+		},
+	}
+	ltcdHarness, err := ltctest.New(&ltcchaincfg.SimNetParams, ltcHandlers, []string{"--rejectnonstd", "--txindex"})
+	if err != nil {
+		ht.Fatalf("ltcd: unable to create mining node: %v", err)
+	}
+	defer func() {
+		if err := ltcdHarness.TearDown(); err != nil {
+			ht.Fatalf("ltcd: cannot tear down harness: %v", err)
+		} else {
+			t.Logf("ltcd: harness teared down")
+		}
+	}()
+
+	t.Logf("ltcd: launching node...")
+	if err := ltcdHarness.SetUp(true, 50); err != nil {
+		ht.Fatalf("ltcd: unable to set up mining node: %v", err)
+	}
+	if err := ltcdHarness.Node.NotifyNewTransactions(false); err != nil {
+		ht.Fatalf("ltcd: unable to request transaction notifications: %v", err)
+	}
+
+	numBlocks := ltcchaincfg.SimNetParams.MinerConfirmationWindow * 2
+	if _, err := ltcdHarness.Node.Generate(numBlocks); err != nil {
+		ht.Fatalf("ltcd: unable to generate blocks: %v", err)
+	}
+	t.Logf("ltcd: %d blocks generated", numBlocks)
+
+	lndLtcNetworkHarness, err = lntest.NewNetworkHarness(ltcdHarness, "litecoin")
+	if err != nil {
+		ht.Fatalf("lnd-ltc: unable to create network harness: %v", err)
+	}
+	defer func() {
+		if err := lndLtcNetworkHarness.TearDownAll(); err != nil {
+			ht.Fatalf("lnd-ltc: cannot tear down network harness: %v", err)
+		} else {
+			t.Logf("lnd-ltc: network harness teared down")
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case err, more := <-lndLtcNetworkHarness.ProcessErrors():
+				if !more {
+					return
+				}
+				t.Logf("lnd-ltc: finished with error (stderr):\n%v", err)
+			}
+		}
+	}()
+
+	t.Logf("lnd-ltc: launching network...")
+	if err = lndLtcNetworkHarness.SetUp(nil); err != nil {
+		ht.Fatalf("lnd-ltc: unable to set up test network: %v", err)
+	}
 
 	// LND-BTC network
 
@@ -159,7 +223,7 @@ func TestExchangeUnionDaemon(t *testing.T) {
 
 	// Next mine enough blocks in order for segwit and the CSV package
 	// soft-fork to activate on SimNet.
-	numBlocks := btcchaincfg.SimNetParams.MinerConfirmationWindow * 2
+	numBlocks = btcchaincfg.SimNetParams.MinerConfirmationWindow * 2
 	if _, err := btcdHarness.Node.Generate(numBlocks); err != nil {
 		ht.Fatalf("btcd: unable to generate blocks: %v", err)
 	}
@@ -201,73 +265,7 @@ func TestExchangeUnionDaemon(t *testing.T) {
 		ht.Fatalf("lnd-btc: unable to set up test network: %v", err)
 	}
 
-	// LND-LTC
-
-	var lndLtcNetworkHarness *lntest.NetworkHarness
-
-	ltcHandlers := &ltcclient.NotificationHandlers{
-		OnTxAccepted: func(hash *ltcchainhash.Hash, amt ltcutil.Amount) {
-			newHash := new(lntest.Hash)
-			copy(newHash[:], hash[:])
-			lndBtcNetworkHarness.OnTxAccepted(newHash)
-		},
-	}
-	ltcdHarness, err := ltctest.New(&ltcchaincfg.SimNetParams, ltcHandlers, []string{"--rejectnonstd", "--txindex"})
-	if err != nil {
-		ht.Fatalf("ltcd: unable to create mining node: %v", err)
-	}
-	defer func() {
-		if err := ltcdHarness.TearDown(); err != nil {
-			ht.Fatalf("ltcd: cannot tear down harness: %v", err)
-		} else {
-			t.Logf("ltcd: harness teared down")
-		}
-	}()
-
-	t.Logf("ltcd: launching node...")
-	if err := ltcdHarness.SetUp(true, 50); err != nil {
-		ht.Fatalf("ltcd: unable to set up mining node: %v", err)
-	}
-	if err := ltcdHarness.Node.NotifyNewTransactions(false); err != nil {
-		ht.Fatalf("ltcd: unable to request transaction notifications: %v", err)
-	}
-
-	numBlocks = chaincfg.SimNetParams.MinerConfirmationWindow * 2
-	if _, err := btcdHarness.Node.Generate(numBlocks); err != nil {
-		ht.Fatalf("ltcd: unable to generate blocks: %v", err)
-	}
-	t.Logf("ltcd: %d blocks generated", numBlocks)
-
-	lndLtcNetworkHarness, err = lntest.NewNetworkHarness(ltcdHarness, "litecoin")
-	if err != nil {
-		ht.Fatalf("lnd-ltc: unable to create network harness: %v", err)
-	}
-	defer func() {
-		if err := lndLtcNetworkHarness.TearDownAll(); err != nil {
-			ht.Fatalf("lnd-ltc: cannot tear down network harness: %v", err)
-		} else {
-			t.Logf("lnd-ltc: network harness teared down")
-		}
-	}()
-
-	go func() {
-		for {
-			select {
-			case err, more := <-lndLtcNetworkHarness.ProcessErrors():
-				if !more {
-					return
-				}
-				t.Logf("lnd-ltc: finished with error (stderr):\n%v", err)
-			}
-		}
-	}()
-
-	t.Logf("lnd-ltc: launching network...")
-	if err = lndLtcNetworkHarness.SetUp(nil); err != nil {
-		ht.Fatalf("lnd-ltc: unable to set up test network: %v", err)
-	}
-
-	// xud
+	// XUD network
 
 	xudHarness, err := xudtest.NewNetworkHarness(lndBtcNetworkHarness, lndLtcNetworkHarness)
 	if err != nil {
