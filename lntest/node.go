@@ -23,9 +23,7 @@ import (
 	"github.com/go-errors/errors"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/macaroons"
-	"github.com/roasbeef/btcd/chaincfg"
 	"github.com/roasbeef/btcd/chaincfg/chainhash"
-	"github.com/roasbeef/btcd/rpcclient"
 	"github.com/roasbeef/btcd/wire"
 )
 
@@ -92,8 +90,7 @@ func generateListeningPorts() (int, int, int) {
 
 type nodeConfig struct {
 	Name      string
-	RPCConfig *rpcclient.ConnConfig
-	NetParams *chaincfg.Params
+	RPCConfig *ConnConfig
 	BaseDir   string
 	ExtraArgs []string
 	Chain     string
@@ -142,21 +139,13 @@ func (cfg nodeConfig) genArgs() []string {
 		daemon = "ltcd"
 	}
 
-	switch cfg.NetParams {
-	case &chaincfg.TestNet3Params:
-		args = append(args, fmt.Sprintf("--%v.testnet",  cfg.Chain))
-	case &chaincfg.SimNetParams:
-		args = append(args, fmt.Sprintf("--%v.simnet",  cfg.Chain))
-	case &chaincfg.RegressionNetParams:
-		args = append(args, fmt.Sprintf("--%v.regtest",  cfg.Chain))
-	}
-
 	encodedCert := hex.EncodeToString(cfg.RPCConfig.Certificates)
+	args = append(args, fmt.Sprintf("--%v.simnet", cfg.Chain))
 	args = append(args, "--nobootstrap")
 	args = append(args, "--debuglevel=debug")
-	args = append(args, fmt.Sprintf("--%v.active",  cfg.Chain))
-	args = append(args, fmt.Sprintf("--%v.defaultchanconfs=1",  cfg.Chain))
-	args = append(args, fmt.Sprintf("--%v.defaultremotedelay=4",  cfg.Chain))
+	args = append(args, fmt.Sprintf("--%v.active", cfg.Chain))
+	args = append(args, fmt.Sprintf("--%v.defaultchanconfs=1", cfg.Chain))
+	args = append(args, fmt.Sprintf("--%v.defaultremotedelay=4", cfg.Chain))
 	args = append(args, fmt.Sprintf("--%v.rpchost=%v", daemon, cfg.RPCConfig.Host))
 	args = append(args, fmt.Sprintf("--%v.rpcuser=%v", daemon, cfg.RPCConfig.User))
 	args = append(args, fmt.Sprintf("--%v.rpcpass=%v", daemon, cfg.RPCConfig.Pass))

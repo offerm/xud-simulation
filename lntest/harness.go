@@ -3,7 +3,9 @@ package lntest
 import (
 	"errors"
 	"fmt"
+	"github.com/ltcsuite/ltcutil"
 	"io/ioutil"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -12,10 +14,11 @@ import (
 	"google.golang.org/grpc/grpclog"
 
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/roasbeef/btcd/chaincfg"
+	ltcrpctest "github.com/ltcsuite/ltcd/integration/rpctest"
+	ltctxscript "github.com/ltcsuite/ltcd/txscript"
+	ltcwire "github.com/ltcsuite/ltcd/wire"
 	"github.com/roasbeef/btcd/chaincfg/chainhash"
 	"github.com/roasbeef/btcd/integration/rpctest"
-	"github.com/roasbeef/btcd/rpcclient"
 	"github.com/roasbeef/btcd/txscript"
 	"github.com/roasbeef/btcd/wire"
 	"github.com/roasbeef/btcutil"
@@ -25,13 +28,13 @@ import (
 // The harness by default is created with two active nodes on the network:
 // Alice and Bob.
 type NetworkHarness struct {
-	rpcConfig rpcclient.ConnConfig
-	netParams *chaincfg.Params
+	rpcConfig ConnConfig
 	chain     string
 
 	// Miner is a reference to a running full node that can be used to create
 	// new blocks on the network.
-	Miner *rpctest.Harness
+	BtcMiner *rpctest.Harness
+	LtcMiner *ltcrpctest.Harness
 
 	activeNodes map[int]*HarnessNode
 
@@ -55,7 +58,22 @@ type NetworkHarness struct {
 }
 
 // NewNetworkHarness creates a new network test harness.
-func NewNetworkHarness(r *rpctest.Harness, chain string) (*NetworkHarness, error) {
+func NewNetworkHarness(rpcTestHarness interface{}, chain string) (*NetworkHarness, error) {
+	var btcMiner *rpctest.Harness
+	var ltcMiner *ltcrpctest.Harness
+	var rpcConfig ConnConfig
+
+	switch v := rpcTestHarness.(type) {
+	case *rpctest.Harness:
+		btcMiner = v
+		rpcConfig = ConnConfig(v.RPCConfig())
+	case *ltcrpctest.Harness:
+		ltcMiner = v
+		rpcConfig = ConnConfig(v.RPCConfig())
+	default:
+		return nil, fmt.Errorf("invalid rpcTestHarness type: %v", reflect.TypeOf(rpcTestHarness))
+	}
+
 	n := NetworkHarness{
 		chain:                chain,
 		activeNodes:          make(map[int]*HarnessNode),
@@ -63,9 +81,9 @@ func NewNetworkHarness(r *rpctest.Harness, chain string) (*NetworkHarness, error
 		seenTxns:             make(chan *Hash),
 		bitcoinWatchRequests: make(chan *txWatchRequest),
 		lndErrorChan:         make(chan error),
-		netParams:            r.ActiveNet,
-		Miner:                r,
-		rpcConfig:            r.RPCConfig(),
+		BtcMiner:             btcMiner,
+		LtcMiner:             ltcMiner,
+		rpcConfig:            rpcConfig,
 		quit:                 make(chan struct{}),
 	}
 	go n.networkWatcher()
@@ -158,29 +176,60 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 			if err != nil {
 				return err
 			}
-			addr, err := btcutil.DecodeAddress(resp.Address, n.netParams)
-			if err != nil {
-				return err
-			}
-			addrScript, err := txscript.PayToAddrScript(addr)
-			if err != nil {
-				return err
+
+			if n.BtcMiner != nil {
+				addr, err := btcutil.DecodeAddress(resp.Address, n.BtcMiner.ActiveNet)
+				if err != nil {
+					return err
+				}
+				addrScript, err := txscript.PayToAddrScript(addr)
+				if err != nil {
+					return err
+				}
+
+				output := &wire.TxOut{
+					PkScript: addrScript,
+					Value:    btcutil.SatoshiPerBitcoin,
+				}
+				if _, err := n.BtcMiner.SendOutputs([]*wire.TxOut{output}, 30); err != nil {
+					return err
+				}
 			}
 
-			output := &wire.TxOut{
-				PkScript: addrScript,
-				Value:    btcutil.SatoshiPerBitcoin,
-			}
-			if _, err := n.Miner.SendOutputs([]*wire.TxOut{output}, 30); err != nil {
-				return err
+			if n.LtcMiner != nil {
+
+				addr, err := ltcutil.DecodeAddress(resp.Address, n.LtcMiner.ActiveNet)
+				if err != nil {
+					return err
+				}
+				addrScript, err := ltctxscript.PayToAddrScript(addr)
+				if err != nil {
+					return err
+				}
+
+				output := &ltcwire.TxOut{
+					PkScript: addrScript,
+					Value:    ltcutil.SatoshiPerBitcoin,
+				}
+				if _, err := n.LtcMiner.SendOutputs([]*ltcwire.TxOut{output}, 30); err != nil {
+					return err
+				}
 			}
 		}
 	}
 
 	// We generate several blocks in order to give the outputs created
 	// above a good number of confirmations.
-	if _, err := n.Miner.Node.Generate(10); err != nil {
-		return err
+
+	if n.BtcMiner != nil {
+		if _, err := n.BtcMiner.Node.Generate(10); err != nil {
+			return err
+		}
+	}
+	if n.LtcMiner != nil {
+		if _, err := n.LtcMiner.Node.Generate(10); err != nil {
+			return err
+		}
 	}
 
 	// Finally, make a connection between both of the nodes.
@@ -251,7 +300,6 @@ func (n *NetworkHarness) newNode(name string, extraArgs []string,
 		Chain:     chain,
 		HasSeed:   hasSeed,
 		RPCConfig: &n.rpcConfig,
-		NetParams: n.netParams,
 		ExtraArgs: extraArgs,
 	})
 	if err != nil {
@@ -1052,29 +1100,59 @@ func (n *NetworkHarness) sendCoins(ctx context.Context, amt btcutil.Amount,
 	if err != nil {
 		return err
 	}
-	addr, err := btcutil.DecodeAddress(resp.Address, n.netParams)
-	if err != nil {
-		return err
-	}
-	addrScript, err := txscript.PayToAddrScript(addr)
-	if err != nil {
-		return err
+
+	if n.BtcMiner != nil {
+		addr, err := btcutil.DecodeAddress(resp.Address, n.BtcMiner.ActiveNet)
+		if err != nil {
+			return err
+		}
+		addrScript, err := txscript.PayToAddrScript(addr)
+		if err != nil {
+			return err
+		}
+
+		// Generate a transaction which creates an output to the target
+		// pkScript of the desired amount.
+		output := &wire.TxOut{
+			PkScript: addrScript,
+			Value:    int64(amt),
+		}
+		if _, err := n.BtcMiner.SendOutputs([]*wire.TxOut{output}, 30); err != nil {
+			return err
+		}
+
+		// Finally, generate 6 new blocks to ensure the output gains a
+		// sufficient number of confirmations.
+		if _, err := n.BtcMiner.Node.Generate(6); err != nil {
+			return err
+		}
 	}
 
-	// Generate a transaction which creates an output to the target
-	// pkScript of the desired amount.
-	output := &wire.TxOut{
-		PkScript: addrScript,
-		Value:    int64(amt),
-	}
-	if _, err := n.Miner.SendOutputs([]*wire.TxOut{output}, 30); err != nil {
-		return err
-	}
+	if n.LtcMiner != nil {
+		addr, err := ltcutil.DecodeAddress(resp.Address, n.LtcMiner.ActiveNet)
+		if err != nil {
+			return err
+		}
+		addrScript, err := ltctxscript.PayToAddrScript(addr)
+		if err != nil {
+			return err
+		}
 
-	// Finally, generate 6 new blocks to ensure the output gains a
-	// sufficient number of confirmations.
-	if _, err := n.Miner.Node.Generate(6); err != nil {
-		return err
+		// Generate a transaction which creates an output to the target
+		// pkScript of the desired amount.
+		output := &ltcwire.TxOut{
+			PkScript: addrScript,
+			Value:    int64(amt),
+		}
+		if _, err := n.LtcMiner.SendOutputs([]*ltcwire.TxOut{output}, 30); err != nil {
+			return err
+		}
+
+		// Finally, generate 6 new blocks to ensure the output gains a
+		// sufficient number of confirmations.
+		if _, err := n.LtcMiner.Node.Generate(6); err != nil {
+			return err
+		}
 	}
 
 	// Pause until the nodes current wallet balances reflects the amount
@@ -1098,3 +1176,69 @@ func (n *NetworkHarness) sendCoins(ctx context.Context, amt btcutil.Amount,
 		}
 	}
 }
+
+// ConnConfig describes the connection configuration parameters for the client.
+// This
+type ConnConfig struct {
+	// Host is the IP address and port of the RPC server you want to connect
+	// to.
+	Host string
+
+	// Endpoint is the websocket endpoint on the RPC server.  This is
+	// typically "ws".
+	Endpoint string
+
+	// User is the username to use to authenticate to the RPC server.
+	User string
+
+	// Pass is the passphrase to use to authenticate to the RPC server.
+	Pass string
+
+	// DisableTLS specifies whether transport layer security should be
+	// disabled.  It is recommended to always use TLS if the RPC server
+	// supports it as otherwise your username and password is sent across
+	// the wire in cleartext.
+	DisableTLS bool
+
+	// Certificates are the bytes for a PEM-encoded certificate chain used
+	// for the TLS connection.  It has no effect if the DisableTLS parameter
+	// is true.
+	Certificates []byte
+
+	// Proxy specifies to connect through a SOCKS 5 proxy server.  It may
+	// be an empty string if a proxy is not required.
+	Proxy string
+
+	// ProxyUser is an optional username to use for the proxy server if it
+	// requires authentication.  It has no effect if the Proxy parameter
+	// is not set.
+	ProxyUser string
+
+	// ProxyPass is an optional password to use for the proxy server if it
+	// requires authentication.  It has no effect if the Proxy parameter
+	// is not set.
+	ProxyPass string
+
+	// DisableAutoReconnect specifies the client should not automatically
+	// try to reconnect to the server when it has been disconnected.
+	DisableAutoReconnect bool
+
+	// DisableConnectOnNew specifies that a websocket client connection
+	// should not be tried when creating the client with New.  Instead, the
+	// client is created and returned unconnected, and Connect must be
+	// called manually.
+	DisableConnectOnNew bool
+
+	// HTTPPostMode instructs the client to run using multiple independent
+	// connections issuing HTTP POST requests instead of using the default
+	// of websockets.  Websockets are generally preferred as some of the
+	// features of the client such notifications only work with websockets,
+	// however, not all servers support the websocket extensions, so this
+	// flag can be set to true to use basic HTTP POST requests instead.
+	HTTPPostMode bool
+
+	// EnableBCInfoHacks is an option provided to enable compatiblity hacks
+	// when connecting to blockchain.info RPC server
+	EnableBCInfoHacks bool
+}
+
