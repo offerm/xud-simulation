@@ -7,11 +7,11 @@ import (
 	"github.com/ExchangeUnion/xud-simulation/xudtest"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/go-errors/errors"
-	//ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
-	//ltcchainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
-	//ltctest "github.com/ltcsuite/ltcd/integration/rpctest"
-	//ltcclient "github.com/ltcsuite/ltcd/rpcclient"
-	//"github.com/ltcsuite/ltcutil"
+	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
+	ltcchainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
+	ltctest "github.com/ltcsuite/ltcd/integration/rpctest"
+	ltcclient "github.com/ltcsuite/ltcd/rpcclient"
+	"github.com/ltcsuite/ltcutil"
 	btcchaincfg "github.com/roasbeef/btcd/chaincfg"
 	btcchainhash "github.com/roasbeef/btcd/chaincfg/chainhash"
 	btctest "github.com/roasbeef/btcd/integration/rpctest"
@@ -119,7 +119,7 @@ func (h *harnessTest) RunTestCase(testCase *testCase, net *xudtest.NetworkHarnes
 func TestExchangeUnionDaemon(t *testing.T) {
 	ht := newHarnessTest(t)
 
-	// lnd-btc
+	// LND-BTC network
 
 	var lndBtcNetworkHarness *lntest.NetworkHarness
 
@@ -132,7 +132,9 @@ func TestExchangeUnionDaemon(t *testing.T) {
 	args := []string{"--rejectnonstd", "--txindex"}
 	handlers := &btcclient.NotificationHandlers{
 		OnTxAccepted: func(hash *btcchainhash.Hash, amt btcutil.Amount) {
-			lndBtcNetworkHarness.OnTxAccepted(hash)
+			newHash := new(lntest.Hash)
+			copy(newHash[:], hash[:])
+			lndBtcNetworkHarness.OnTxAccepted(newHash)
 		},
 	}
 	btcdHarness, err := btctest.New(&btcchaincfg.SimNetParams, handlers, args)
@@ -199,16 +201,18 @@ func TestExchangeUnionDaemon(t *testing.T) {
 		ht.Fatalf("lnd-btc: unable to set up test network: %v", err)
 	}
 
-	// lnd-ltc
+	// LND-LTC
 
 	var lndLtcNetworkHarness *lntest.NetworkHarness
 
-	ltcHandlers := &btcclient.NotificationHandlers{
-		OnTxAccepted: func(hash *btcchainhash.Hash, amt btcutil.Amount) {
-			lndLtcNetworkHarness.OnTxAccepted(hash)
+	ltcHandlers := &ltcclient.NotificationHandlers{
+		OnTxAccepted: func(hash *ltcchainhash.Hash, amt ltcutil.Amount) {
+			newHash := new(lntest.Hash)
+			copy(newHash[:], hash[:])
+			lndBtcNetworkHarness.OnTxAccepted(newHash)
 		},
 	}
-	ltcdHarness, err := btctest.New(&btcchaincfg.SimNetParams, ltcHandlers, []string{"--rejectnonstd", "--txindex"})
+	ltcdHarness, err := ltctest.New(&ltcchaincfg.SimNetParams, ltcHandlers, []string{"--rejectnonstd", "--txindex"})
 	if err != nil {
 		ht.Fatalf("ltcd: unable to create mining node: %v", err)
 	}

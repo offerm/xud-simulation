@@ -42,7 +42,7 @@ type NetworkHarness struct {
 	Alice *HarnessNode
 	Bob   *HarnessNode
 
-	seenTxns             chan *chainhash.Hash
+	seenTxns             chan *Hash
 	bitcoinWatchRequests chan *txWatchRequest
 
 	// Channel for transmitting stderr output from failed lightning node
@@ -55,15 +55,12 @@ type NetworkHarness struct {
 }
 
 // NewNetworkHarness creates a new network test harness.
-// TODO(roasbeef): add option to use golang's build library to a binary of the
-// current repo. This will save developers from having to manually `go install`
-// within the repo each time before changes
 func NewNetworkHarness(r *rpctest.Harness, chain string) (*NetworkHarness, error) {
 	n := NetworkHarness{
 		chain:                chain,
 		activeNodes:          make(map[int]*HarnessNode),
 		nodesByPub:           make(map[string]*HarnessNode),
-		seenTxns:             make(chan *chainhash.Hash),
+		seenTxns:             make(chan *Hash),
 		bitcoinWatchRequests: make(chan *txWatchRequest),
 		lndErrorChan:         make(chan error),
 		netParams:            r.ActiveNet,
@@ -497,7 +494,7 @@ func (n *NetworkHarness) ShutdownNode(node *HarnessNode) error {
 // watcher to dispatch a notification once a transaction with the target txid
 // is seen within the test network.
 type txWatchRequest struct {
-	txid      chainhash.Hash
+	txid      Hash
 	eventChan chan struct{}
 }
 
@@ -505,8 +502,8 @@ type txWatchRequest struct {
 // requests for the broadcast of a target transaction, and then dispatches the
 // transaction once its seen on the Bitcoin network.
 func (n *NetworkHarness) networkWatcher() {
-	seenTxns := make(map[chainhash.Hash]struct{})
-	clients := make(map[chainhash.Hash][]chan struct{})
+	seenTxns := make(map[Hash]struct{})
+	clients := make(map[Hash][]chan struct{})
 
 	for {
 
@@ -550,7 +547,7 @@ func (n *NetworkHarness) networkWatcher() {
 
 // OnTxAccepted is a callback to be called each time a new transaction has been
 // broadcast on the network.
-func (n *NetworkHarness) OnTxAccepted(hash *chainhash.Hash) {
+func (n *NetworkHarness) OnTxAccepted(hash *Hash) {
 	select {
 	case n.seenTxns <- hash:
 	case <-n.quit:
@@ -562,7 +559,7 @@ func (n *NetworkHarness) OnTxAccepted(hash *chainhash.Hash) {
 // the transaction isn't seen within the network before the passed timeout,
 // then an error is returned.
 // TODO(roasbeef): add another method which creates queue of all seen transactions
-func (n *NetworkHarness) WaitForTxBroadcast(ctx context.Context, txid chainhash.Hash) error {
+func (n *NetworkHarness) WaitForTxBroadcast(ctx context.Context, txid Hash) error {
 	// Return immediately if harness has been torn down.
 	select {
 	case <-n.quit:
@@ -753,7 +750,7 @@ func (n *NetworkHarness) WaitForChannelOpen(ctx context.Context,
 // pending, then an error is returned.
 func (n *NetworkHarness) CloseChannel(ctx context.Context,
 	lnNode *HarnessNode, cp *lnrpc.ChannelPoint,
-	force bool) (lnrpc.Lightning_CloseChannelClient, *chainhash.Hash, error) {
+	force bool) (lnrpc.Lightning_CloseChannelClient, *Hash, error) {
 
 	// Create a channel outpoint that we can use to compare to channels
 	// from the ListChannelsResponse.
@@ -840,7 +837,7 @@ func (n *NetworkHarness) CloseChannel(ctx context.Context,
 	}
 
 	errChan := make(chan error)
-	fin := make(chan *chainhash.Hash)
+	fin := make(chan *Hash)
 	go func() {
 		// Consume the "channel close" update in order to wait for the closing
 		// transaction to be broadcast, then wait for the closing tx to be seen
@@ -857,7 +854,7 @@ func (n *NetworkHarness) CloseChannel(ctx context.Context,
 			return
 		}
 
-		closeTxid, err := chainhash.NewHash(pendingClose.ClosePending.Txid)
+		closeTxid, err := NewHash(pendingClose.ClosePending.Txid)
 		if err != nil {
 			errChan <- err
 			return
