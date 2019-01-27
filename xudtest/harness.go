@@ -8,7 +8,7 @@ import (
 )
 
 type NetworkHarness struct {
-	activeNodes map[int]*HarnessNode
+	ActiveNodes map[int]*HarnessNode
 
 	Alice *HarnessNode
 	Bob   *HarnessNode
@@ -31,7 +31,7 @@ func NewNetworkHarness(lndBtcNetwork *lntest.NetworkHarness, lndLtcNetwork *lnte
 	n := NetworkHarness{
 		lndBtcNetwork: lndBtcNetwork,
 		lndLtcNetwork: lndLtcNetwork,
-		activeNodes:   make(map[int]*HarnessNode),
+		ActiveNodes:   make(map[int]*HarnessNode),
 		errorChan:     make(chan error),
 		quit:          make(chan struct{}),
 	}
@@ -45,7 +45,7 @@ func (n *NetworkHarness) newNode(name string, lndBtcNode *lntest.HarnessNode, ln
 	}
 
 	n.mtx.Lock()
-	n.activeNodes[node.Id] = node
+	n.ActiveNodes[node.Id] = node
 	n.mtx.Unlock()
 
 	if err := node.start(n.errorChan); err != nil {
@@ -97,12 +97,12 @@ func (n *NetworkHarness) ProcessErrors() <-chan error {
 
 // TearDownAll tears down all active nodes.
 func (n *NetworkHarness) TearDownAll(cleanup bool) error {
-	for _, node := range n.activeNodes {
+	for _, node := range n.ActiveNodes {
 		if err := node.shutdown(cleanup); err != nil {
 			return err
 		}
 
-		delete(n.activeNodes, node.Id)
+		delete(n.ActiveNodes, node.Id)
 	}
 
 	close(n.errorChan)

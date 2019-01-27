@@ -52,26 +52,27 @@ var testsCases = []*testCase{
 }
 
 func testVerifyConnectivity(net *xudtest.NetworkHarness, ht *harnessTest) {
-	node := net.Alice // todo: loop through all active nodes
-	info, err := node.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
-	if err != nil {
-		ht.Fatalf("unable to get node info: %v", err)
-	}
+	for _, node := range net.ActiveNodes {
+		info, err := node.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
+		if err != nil {
+			ht.Fatalf("unable to get node info: %v", err)
+		}
 
-	if info.Lndbtc == nil {
-		ht.Fatalf("lnd-btc not connected")
-	}
+		if info.Lndbtc == nil {
+			ht.Fatalf("lnd-btc not connected")
+		}
 
-	if info.Lndltc == nil {
-		ht.Fatalf("lnd-ltc not connected")
-	}
+		if info.Lndltc == nil {
+			ht.Fatalf("lnd-ltc not connected")
+		}
 
-	if len(info.Lndbtc.Chains) != 1 || info.Lndbtc.Chains[0] != "bitcoin" {
-		ht.Fatalf("incorrect lnd-btc chain: %v", info.Lndbtc.Chains[0])
-	}
+		if len(info.Lndbtc.Chains) != 1 || info.Lndbtc.Chains[0] != "bitcoin" {
+			ht.Fatalf("incorrect lnd-btc chain: %v", info.Lndbtc.Chains[0])
+		}
 
-	if len(info.Lndltc.Chains) != 1 || info.Lndltc.Chains[0] != "litecoin" {
-		ht.Fatalf("incorrect lnd-ltc chain: %v", info.Lndbtc.Chains[0])
+		if len(info.Lndltc.Chains) != 1 || info.Lndltc.Chains[0] != "litecoin" {
+			ht.Fatalf("incorrect lnd-ltc chain: %v", info.Lndbtc.Chains[0])
+		}
 	}
 }
 
