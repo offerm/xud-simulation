@@ -17,7 +17,6 @@ import (
 	btcclient "github.com/roasbeef/btcd/rpcclient"
 	"github.com/roasbeef/btcutil"
 	"golang.org/x/net/context"
-
 	"testing"
 )
 
@@ -49,30 +48,126 @@ var testsCases = []*testCase{
 		name: "verify connectivity",
 		test: testVerifyConnectivity,
 	},
+	{
+		name: "add currencies and pair",
+		test: testAddCurrenciesAndPair,
+	},
+	{
+		name: "connect to peer",
+		test: testConnectPeer,
+	},
 }
 
 func testVerifyConnectivity(net *xudtest.NetworkHarness, ht *harnessTest) {
 	for _, node := range net.ActiveNodes {
 		info, err := node.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
 		if err != nil {
-			ht.Fatalf("unable to get node info: %v", err)
+			ht.Fatalf("RPC GetInfo failure: %v", err)
 		}
 
 		if info.Lndbtc == nil {
-			ht.Fatalf("lnd-btc not connected")
+			ht.Fatalf("RPC GetInfo: lnd-btc not connected.")
 		}
 
 		if info.Lndltc == nil {
-			ht.Fatalf("lnd-ltc not connected")
+			ht.Fatalf("RPC GetInfo: lnd-ltc not connected.")
 		}
 
 		if len(info.Lndbtc.Chains) != 1 || info.Lndbtc.Chains[0] != "bitcoin" {
-			ht.Fatalf("incorrect lnd-btc chain: %v", info.Lndbtc.Chains[0])
+			ht.Fatalf("RPC GetInfo: invalid lnd-btc chain: %v", info.Lndbtc.Chains[0])
 		}
 
 		if len(info.Lndltc.Chains) != 1 || info.Lndltc.Chains[0] != "litecoin" {
-			ht.Fatalf("incorrect lnd-ltc chain: %v", info.Lndbtc.Chains[0])
+			ht.Fatalf("RPC GetInfo: invalid lnd-ltc chain: %v", info.Lndbtc.Chains[0])
 		}
+
+		node.SetPubKey(info.NodePubKey)
+	}
+}
+
+func testAddCurrenciesAndPair(net *xudtest.NetworkHarness, ht *harnessTest) {
+	for _, node := range net.ActiveNodes {
+		reqAddCurr := &xudrpc.AddCurrencyRequest{Currency: "BTC", SwapClient: 0}
+		if _, err := node.Client.AddCurrency(context.Background(), reqAddCurr); err != nil {
+			ht.Fatalf("RPC AddCurrency failure: %v", err)
+		}
+
+		reqAddCurr = &xudrpc.AddCurrencyRequest{Currency: "LTC", SwapClient: 0}
+		if _, err := node.Client.AddCurrency(context.Background(), reqAddCurr); err != nil {
+			ht.Fatalf("RPC AddCurrency failure: %v", err)
+		}
+
+		reqAddPair := &xudrpc.AddPairRequest{BaseCurrency: "LTC", QuoteCurrency: "BTC"}
+		if _, err := node.Client.AddPair(context.Background(), reqAddPair); err != nil {
+			ht.Fatalf("RPC AddPair failure: %v", err)
+		}
+
+		resGetInfo, err := node.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
+		if err != nil {
+			ht.Fatalf("RPC GetInfo failure: %v", err)
+		}
+
+		if resGetInfo.NumPairs != 1 {
+			ht.Fatalf("RPC GetInfo: added pair is missing.")
+		}
+	}
+}
+
+func testConnectPeer(net *xudtest.NetworkHarness, ht *harnessTest) {
+	bobNodeUri := fmt.Sprintf("%v@%v",
+		net.Bob.PubKey(),
+		net.Bob.Cfg.P2PAddr(),
+	)
+
+	// Alice to connect to Bob
+
+	reqConn := &xudrpc.ConnectRequest{NodeUri: bobNodeUri}
+	_, err := net.Alice.Client.Connect(context.Background(), reqConn)
+	if err != nil {
+		ht.Fatalf("RPC Connect failure: %v", err)
+	}
+
+	// assert Alice peer (bob)
+
+	resListPeers, err := net.Alice.Client.ListPeers(context.Background(), &xudrpc.ListPeersRequest{})
+	if err != nil {
+		ht.Fatalf("RPC ListPeers failure: %v", err)
+	}
+	if len(resListPeers.Peers) != 1 {
+		ht.Fatalf("RPC ListPeers: peers are missing.")
+	}
+
+	assertPeersNum(ht, resListPeers.Peers, 1)
+	assertPeerInfo(ht, resListPeers.Peers[0], net.Bob)
+
+	// assert Bob peer (alice)
+
+	resListPeers, err = net.Bob.Client.ListPeers(context.Background(), &xudrpc.ListPeersRequest{})
+	if err != nil {
+		ht.Fatalf("RPC ListPeers failure: %v", err)
+	}
+
+	assertPeersNum(ht, resListPeers.Peers, 1)
+	assertPeerInfo(ht, resListPeers.Peers[0], net.Alice)
+}
+
+func assertPeersNum(ht *harnessTest, peers []*xudrpc.Peer, num int) {
+	if len(peers) != num {
+		ht.Fatalf("Invalid peers num.")
+	}
+}
+
+func assertPeerInfo(ht *harnessTest, peer *xudrpc.Peer, node *xudtest.HarnessNode) {
+	if peer.NodePubKey != node.PubKey() {
+		ht.Fatalf("Invalid peer NodePubKey")
+	}
+
+	if peer.LndBtcPubKey != node.LndBtcNode.PubKeyStr {
+		ht.Fatalf("Invalid peer LndBtcPubKey")
+	}
+
+	if peer.LndLtcPubKey != node.LndLtcNode.PubKeyStr {
+		ht.Fatalf("Invalid peer LndLtcPubKey")
 	}
 }
 

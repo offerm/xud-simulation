@@ -69,14 +69,15 @@ func (cfg nodeConfig) genArgs() []string {
 // harness. Each HarnessNode instance also fully embeds an RPC Client in
 // order to pragmatically drive the node.
 type HarnessNode struct {
-	cfg *nodeConfig
+	Cfg *nodeConfig
 	cmd *exec.Cmd
 
 	Name string
 	Id   int
+	pubKey string
 
-	lndBtcNode *lntest.HarnessNode
-	lndLtcNode *lntest.HarnessNode
+	LndBtcNode *lntest.HarnessNode
+	LndLtcNode *lntest.HarnessNode
 
 
 	// processExit is a channel that's closed once it's detected that the
@@ -92,6 +93,11 @@ type HarnessNode struct {
 func (cfg nodeConfig) RPCAddr() string {
 	return net.JoinHostPort("127.0.0.1", strconv.Itoa(cfg.RPCPort))
 }
+
+func (cfg nodeConfig) P2PAddr() string {
+	return net.JoinHostPort("127.0.0.1", strconv.Itoa(cfg.P2PPort))
+}
+
 
 func newNode(name string, lndBtcNode *lntest.HarnessNode, lndLtcNode *lntest.HarnessNode) (*HarnessNode, error) {
 	nodeNum := int(atomic.AddInt32(&numActiveNodes, 1))
@@ -125,11 +131,11 @@ func newNode(name string, lndBtcNode *lntest.HarnessNode, lndLtcNode *lntest.Har
 	cfg.RPCPort = baseRpcPort + nodeNum
 
 	return &HarnessNode{
-		cfg:        &cfg,
+		Cfg:        &cfg,
 		Name:       name,
 		Id:         nodeNum,
-		lndBtcNode: lndBtcNode,
-		lndLtcNode: lndLtcNode,
+		LndBtcNode: lndBtcNode,
+		LndLtcNode: lndLtcNode,
 	}, nil
 }
 
@@ -137,8 +143,8 @@ func newNode(name string, lndBtcNode *lntest.HarnessNode, lndLtcNode *lntest.Har
 func (hn *HarnessNode) start(lndError chan<- error) error {
 	hn.quit = make(chan struct{})
 
-	args := hn.cfg.genArgs()
-	hn.cmd = exec.Command(filepath.Join(hn.cfg.XUDPath, "bin/xud"), args...)
+	args := hn.Cfg.genArgs()
+	hn.cmd = exec.Command(filepath.Join(hn.Cfg.XUDPath, "bin/xud"), args...)
 
 	// Redirect stderr output to buffer
 	var errb bytes.Buffer
@@ -183,7 +189,7 @@ func (hn *HarnessNode) ConnectRPC(useMacs bool) (*grpc.ClientConn, error) {
 	// Wait until TLS certificate and admin macaroon are created before
 	// using them, up to 20 sec.
 	tlsTimeout := time.After(30 * time.Second)
-	for !fileExists(hn.cfg.TLSCertPath) {
+	for !fileExists(hn.Cfg.TLSCertPath) {
 		select {
 		case <-tlsTimeout:
 			return nil, fmt.Errorf("timeout waiting for TLS cert " +
@@ -197,14 +203,14 @@ func (hn *HarnessNode) ConnectRPC(useMacs bool) (*grpc.ClientConn, error) {
 		grpc.WithTimeout(time.Second * 20),
 	}
 
-	tlsCreds, err := credentials.NewClientTLSFromFile(hn.cfg.TLSCertPath, "")
+	tlsCreds, err := credentials.NewClientTLSFromFile(hn.Cfg.TLSCertPath, "")
 	if err != nil {
 		return nil, err
 	}
 
 	opts = append(opts, grpc.WithTransportCredentials(tlsCreds))
 
-	return grpc.Dial(hn.cfg.RPCAddr(), opts...)
+	return grpc.Dial(hn.Cfg.RPCAddr(), opts...)
 }
 
 func (hn *HarnessNode) shutdown(cleanup bool) error {
@@ -248,7 +254,15 @@ func (hn *HarnessNode) stop() error {
 }
 
 func (hn *HarnessNode) cleanup() error {
-	return os.RemoveAll(hn.cfg.DataDir)
+	return os.RemoveAll(hn.Cfg.DataDir)
+}
+
+func (hn *HarnessNode) PubKey() string {
+	return hn.pubKey
+}
+
+func (hn *HarnessNode) SetPubKey(pubKey string) {
+	hn.pubKey = pubKey
 }
 
 // fileExists reports whether the named file or directory exists.
