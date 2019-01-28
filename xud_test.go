@@ -17,6 +17,7 @@ import (
 	btcclient "github.com/roasbeef/btcd/rpcclient"
 	"github.com/roasbeef/btcutil"
 	"golang.org/x/net/context"
+	"strings"
 	"testing"
 )
 
@@ -368,7 +369,7 @@ func TestExchangeUnionDaemon(t *testing.T) {
 		ht.Fatalf("unable to create xud network harness: %v", err)
 	}
 	defer func() {
-		if err := xudHarness.TearDownAll(true); err != nil {
+		if err := xudHarness.TearDownAll(true, true); err != nil {
 			ht.Fatalf("cannot tear down xud network harness: %v", err)
 		} else {
 			t.Logf("xud network harness teared down")
@@ -383,11 +384,18 @@ func TestExchangeUnionDaemon(t *testing.T) {
 	go func() {
 		for {
 			select {
-			case err, more := <-xudHarness.ProcessErrors():
+			case xudError, more := <-xudHarness.ProcessErrors():
 				if !more {
 					return
 				}
-				t.Logf("xud process finished with error (stderr):\n%v", err)
+
+				if strings.Contains(xudError.Err.Error(), "signal: killed") {
+					t.Logf("xud process (%v-%v) did not shutdown gracefully. process (%v) was killed",
+						xudError.Node.Id, xudError.Node.Name, xudError.Node.Cmd.Process.Pid)
+
+				} else {
+					t.Logf("xud process finished with error (stderr):\n%v", err)
+				}
 			}
 		}
 	}()

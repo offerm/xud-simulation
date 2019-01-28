@@ -7,6 +7,11 @@ import (
 	"sync"
 )
 
+type xudError struct {
+	Node *HarnessNode
+	Err error
+}
+
 type NetworkHarness struct {
 	ActiveNodes map[int]*HarnessNode
 
@@ -16,7 +21,7 @@ type NetworkHarness struct {
 	lndBtcNetwork *lntest.NetworkHarness
 	lndLtcNetwork *lntest.NetworkHarness
 
-	errorChan chan error
+	errorChan chan *xudError
 
 	quit chan struct{}
 
@@ -32,7 +37,7 @@ func NewNetworkHarness(lndBtcNetwork *lntest.NetworkHarness, lndLtcNetwork *lnte
 		lndBtcNetwork: lndBtcNetwork,
 		lndLtcNetwork: lndLtcNetwork,
 		ActiveNodes:   make(map[int]*HarnessNode),
-		errorChan:     make(chan error),
+		errorChan:     make(chan *xudError),
 		quit:          make(chan struct{}),
 	}
 	return &n, nil
@@ -91,14 +96,14 @@ func (n *NetworkHarness) SetUp() error {
 // ProcessErrors returns a channel used for reporting any fatal process errors.
 // If any of the active nodes within the harness' test network incur a fatal
 // error, that error is sent over this channel.
-func (n *NetworkHarness) ProcessErrors() <-chan error {
+func (n *NetworkHarness) ProcessErrors() <-chan *xudError {
 	return n.errorChan
 }
 
 // TearDownAll tears down all active nodes.
-func (n *NetworkHarness) TearDownAll(cleanup bool) error {
+func (n *NetworkHarness) TearDownAll(kill bool, cleanup bool) error {
 	for _, node := range n.ActiveNodes {
-		if err := node.shutdown(cleanup); err != nil {
+		if err := node.shutdown(kill, cleanup); err != nil {
 			return err
 		}
 

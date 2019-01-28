@@ -70,15 +70,14 @@ func (cfg nodeConfig) genArgs() []string {
 // order to pragmatically drive the node.
 type HarnessNode struct {
 	Cfg *nodeConfig
-	cmd *exec.Cmd
+	Cmd *exec.Cmd
 
-	Name string
-	Id   int
+	Name   string
+	Id     int
 	pubKey string
 
 	LndBtcNode *lntest.HarnessNode
 	LndLtcNode *lntest.HarnessNode
-
 
 	// processExit is a channel that's closed once it's detected that the
 	// process this instance of HarnessNode is bound to has exited.
@@ -97,7 +96,6 @@ func (cfg nodeConfig) RPCAddr() string {
 func (cfg nodeConfig) P2PAddr() string {
 	return net.JoinHostPort("127.0.0.1", strconv.Itoa(cfg.P2PPort))
 }
-
 
 func newNode(name string, lndBtcNode *lntest.HarnessNode, lndLtcNode *lntest.HarnessNode) (*HarnessNode, error) {
 	nodeNum := int(atomic.AddInt32(&numActiveNodes, 1))
@@ -140,17 +138,17 @@ func newNode(name string, lndBtcNode *lntest.HarnessNode, lndLtcNode *lntest.Har
 }
 
 // Start launches a new running process of xud.
-func (hn *HarnessNode) start(lndError chan<- error) error {
+func (hn *HarnessNode) start(errorChan chan<- *xudError) error {
 	hn.quit = make(chan struct{})
 
 	args := hn.Cfg.genArgs()
-	hn.cmd = exec.Command(filepath.Join(hn.Cfg.XUDPath, "bin/xud"), args...)
+	hn.Cmd = exec.Command(filepath.Join(hn.Cfg.XUDPath, "bin/xud"), args...)
 
 	// Redirect stderr output to buffer
 	var errb bytes.Buffer
-	hn.cmd.Stderr = &errb
+	hn.Cmd.Stderr = &errb
 
-	if err := hn.cmd.Start(); err != nil {
+	if err := hn.Cmd.Start(); err != nil {
 		return err
 	}
 
@@ -161,9 +159,9 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 	go func() {
 		defer hn.wg.Done()
 
-		err := hn.cmd.Wait()
+		err := hn.Cmd.Wait()
 		if err != nil {
-			lndError <- errors.Errorf("%v\n%v\n", err, errb.String())
+			errorChan <- &xudError{hn, errors.Errorf("%v: %v\n%v\n", err, errb.String())}
 		}
 
 		// Signal any onlookers that this process has exited.
@@ -174,7 +172,7 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 	// connected Client, we have to kill the process.
 	conn, err := hn.ConnectRPC(false)
 	if err != nil {
-		hn.cmd.Process.Kill()
+		hn.Cmd.Process.Kill()
 		return err
 	}
 
@@ -213,8 +211,8 @@ func (hn *HarnessNode) ConnectRPC(useMacs bool) (*grpc.ClientConn, error) {
 	return grpc.Dial(hn.Cfg.RPCAddr(), opts...)
 }
 
-func (hn *HarnessNode) shutdown(cleanup bool) error {
-	if err := hn.stop(); err != nil {
+func (hn *HarnessNode) shutdown(kill bool, cleanup bool) error {
+	if err := hn.stop(kill); err != nil {
 		return err
 	}
 	if cleanup {
@@ -225,7 +223,7 @@ func (hn *HarnessNode) shutdown(cleanup bool) error {
 	return nil
 }
 
-func (hn *HarnessNode) stop() error {
+func (hn *HarnessNode) stop(kill bool) error {
 	// Do nothing if the process is not running.
 	if hn.processExit == nil {
 		return nil
@@ -234,14 +232,21 @@ func (hn *HarnessNode) stop() error {
 	if hn.Client != nil {
 		ctx := context.Background()
 		req := xudrpc.ShutdownRequest{}
-		hn.Client.Shutdown(ctx, &req)
+		if _, err := hn.Client.Shutdown(ctx, &req); err != nil {
+			return fmt.Errorf("RPC Shutdown failure: %v", err)
+		}
 	}
 
 	// Wait for xud process and other goroutines to exit.
 	select {
 	case <-hn.processExit:
-	case <-time.After(20 * time.Second):
-		return fmt.Errorf("process did not exit")
+	case <-time.After(10 * time.Second):
+		if !kill {
+			return fmt.Errorf("process did not exit")
+		}
+		if err := hn.Cmd.Process.Kill(); err != nil {
+			return fmt.Errorf("failed to kill process: %v", err)
+		}
 	}
 
 	close(hn.quit)
