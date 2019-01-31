@@ -12,19 +12,21 @@ It has these top-level messages:
 	AddCurrencyResponse
 	AddPairRequest
 	AddPairResponse
-	RemoveOrderRequest
-	RemoveOrderResponse
+	BanRequest
+	BanResponse
 	ChannelBalance
 	ChannelBalanceRequest
 	ChannelBalanceResponse
 	ConnectRequest
 	ConnectResponse
-	BanRequest
-	BanResponse
+	ExecuteSwapRequest
+	SwapFailure
 	GetInfoRequest
 	GetInfoResponse
-	GetOrdersRequest
-	GetOrdersResponse
+	GetNodeInfoRequest
+	GetNodeInfoResponse
+	ListOrdersRequest
+	ListOrdersResponse
 	ListCurrenciesRequest
 	ListCurrenciesResponse
 	ListPairsRequest
@@ -44,6 +46,8 @@ It has these top-level messages:
 	RaidenInfo
 	RemoveCurrencyRequest
 	RemoveCurrencyResponse
+	RemoveOrderRequest
+	RemoveOrderResponse
 	RemovePairRequest
 	RemovePairResponse
 	ShutdownRequest
@@ -51,7 +55,7 @@ It has these top-level messages:
 	SubscribeAddedOrdersRequest
 	SubscribeRemovedOrdersRequest
 	SubscribeSwapsRequest
-	SwapResult
+	SwapSuccess
 	UnbanRequest
 	UnbanResponse
 */
@@ -122,37 +126,39 @@ func (AddCurrencyRequest_SwapClient) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{0, 0}
 }
 
-type SwapResult_Role int32
+type SwapSuccess_Role int32
 
 const (
-	SwapResult_TAKER SwapResult_Role = 0
-	SwapResult_MAKER SwapResult_Role = 1
+	SwapSuccess_TAKER SwapSuccess_Role = 0
+	SwapSuccess_MAKER SwapSuccess_Role = 1
 )
 
-var SwapResult_Role_name = map[int32]string{
+var SwapSuccess_Role_name = map[int32]string{
 	0: "TAKER",
 	1: "MAKER",
 }
-var SwapResult_Role_value = map[string]int32{
+var SwapSuccess_Role_value = map[string]int32{
 	"TAKER": 0,
 	"MAKER": 1,
 }
 
-func (x SwapResult_Role) String() string {
-	return proto.EnumName(SwapResult_Role_name, int32(x))
+func (x SwapSuccess_Role) String() string {
+	return proto.EnumName(SwapSuccess_Role_name, int32(x))
 }
-func (SwapResult_Role) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{43, 0} }
+func (SwapSuccess_Role) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{47, 0} }
 
 type AddCurrencyRequest struct {
 	// The ticker symbol for this currency such as BTC, LTC, ETH, etc...
 	Currency string `protobuf:"bytes,1,opt,name=currency" json:"currency,omitempty"`
-	// The payment channel network client to use for executing swaps
+	// The payment channel network client to use for executing swaps.
 	SwapClient AddCurrencyRequest_SwapClient `protobuf:"varint,2,opt,name=swap_client,enum=xudrpc.AddCurrencyRequest_SwapClient" json:"swap_client,omitempty"`
-	// The contract address for layered tokens such as ERC20
+	// The contract address for layered tokens such as ERC20.
 	TokenAddress string `protobuf:"bytes,3,opt,name=token_address" json:"token_address,omitempty"`
-	// The number of places to the right of the decimal point of the smallest subunit of the currency. For example, BTC, LTC, and others
-	// where the smallest subunits (satoshis) are 0.00000001 full units (bitcoins) have 8 decimal places. ETH has 18. This can be thought
-	// of as the base 10 exponent of the smallest subunit expressed as a positive integer. A default value of 8 is used if unspecified.
+	// The number of places to the right of the decimal point of the smallest subunit of the currency.
+	// For example, BTC, LTC, and others where the smallest subunits (satoshis) are 0.00000001 full
+	// units (bitcoins) have 8 decimal places. ETH has 18. This can be thought of as the base 10
+	// exponent of the smallest subunit expressed as a positive integer. A default value of 8 is
+	// used if unspecified.
 	DecimalPlaces uint32 `protobuf:"varint,4,opt,name=decimal_places" json:"decimal_places,omitempty"`
 }
 
@@ -198,9 +204,9 @@ func (*AddCurrencyResponse) ProtoMessage()               {}
 func (*AddCurrencyResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
 
 type AddPairRequest struct {
-	// The base currency that is bought and sold for this trading pair
+	// The base currency that is bought and sold for this trading pair.
 	BaseCurrency string `protobuf:"bytes,1,opt,name=base_currency" json:"base_currency,omitempty"`
-	// The currency used to quote a price for the base currency
+	// The currency used to quote a price for the base currency.
 	QuoteCurrency string `protobuf:"bytes,2,opt,name=quote_currency" json:"quote_currency,omitempty"`
 }
 
@@ -231,35 +237,35 @@ func (m *AddPairResponse) String() string            { return proto.CompactTextS
 func (*AddPairResponse) ProtoMessage()               {}
 func (*AddPairResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
 
-type RemoveOrderRequest struct {
-	// The local id of the order to remove
-	OrderId string `protobuf:"bytes,1,opt,name=order_id" json:"order_id,omitempty"`
+type BanRequest struct {
+	// The node pub key of the node to ban.
+	NodePubKey string `protobuf:"bytes,1,opt,name=node_pub_key" json:"node_pub_key,omitempty"`
 }
 
-func (m *RemoveOrderRequest) Reset()                    { *m = RemoveOrderRequest{} }
-func (m *RemoveOrderRequest) String() string            { return proto.CompactTextString(m) }
-func (*RemoveOrderRequest) ProtoMessage()               {}
-func (*RemoveOrderRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+func (m *BanRequest) Reset()                    { *m = BanRequest{} }
+func (m *BanRequest) String() string            { return proto.CompactTextString(m) }
+func (*BanRequest) ProtoMessage()               {}
+func (*BanRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
 
-func (m *RemoveOrderRequest) GetOrderId() string {
+func (m *BanRequest) GetNodePubKey() string {
 	if m != nil {
-		return m.OrderId
+		return m.NodePubKey
 	}
 	return ""
 }
 
-type RemoveOrderResponse struct {
+type BanResponse struct {
 }
 
-func (m *RemoveOrderResponse) Reset()                    { *m = RemoveOrderResponse{} }
-func (m *RemoveOrderResponse) String() string            { return proto.CompactTextString(m) }
-func (*RemoveOrderResponse) ProtoMessage()               {}
-func (*RemoveOrderResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
+func (m *BanResponse) Reset()                    { *m = BanResponse{} }
+func (m *BanResponse) String() string            { return proto.CompactTextString(m) }
+func (*BanResponse) ProtoMessage()               {}
+func (*BanResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
 
 type ChannelBalance struct {
-	// Sum of channels balances denominated in satoshis or equivalent
+	// Sum of channels balances denominated in satoshis or equivalent.
 	Balance int64 `protobuf:"varint,1,opt,name=balance" json:"balance,omitempty"`
-	// Sum of channels pending balances denominated in satoshis or equivalent
+	// Sum of channels pending balances denominated in satoshis or equivalent.
 	PendingOpenBalance int64 `protobuf:"varint,2,opt,name=pending_open_balance" json:"pending_open_balance,omitempty"`
 }
 
@@ -283,8 +289,8 @@ func (m *ChannelBalance) GetPendingOpenBalance() int64 {
 }
 
 type ChannelBalanceRequest struct {
-	// The ticker symbol of the currency to query for, if unspecified then balances for all
-	// supported currencies are queried
+	// The ticker symbol of the currency to query for, if unspecified then balances for all supported
+	// currencies are queried.
 	Currency string `protobuf:"bytes,1,opt,name=currency" json:"currency,omitempty"`
 }
 
@@ -301,7 +307,7 @@ func (m *ChannelBalanceRequest) GetCurrency() string {
 }
 
 type ChannelBalanceResponse struct {
-	// A map between currency ticker symbols and their channel balances
+	// A map between currency ticker symbols and their channel balances.
 	Balances map[string]*ChannelBalance `protobuf:"bytes,1,rep,name=balances,json=orders" json:"balances,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 }
 
@@ -318,6 +324,7 @@ func (m *ChannelBalanceResponse) GetBalances() map[string]*ChannelBalance {
 }
 
 type ConnectRequest struct {
+	// The uri of the node to connect to in "[nodePubKey]@[host]:[port]" format.
 	NodeUri string `protobuf:"bytes,1,opt,name=node_uri" json:"node_uri,omitempty"`
 }
 
@@ -341,29 +348,93 @@ func (m *ConnectResponse) String() string            { return proto.CompactTextS
 func (*ConnectResponse) ProtoMessage()               {}
 func (*ConnectResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{10} }
 
-type BanRequest struct {
-	NodePubKey string `protobuf:"bytes,1,opt,name=node_pub_key" json:"node_pub_key,omitempty"`
+type ExecuteSwapRequest struct {
+	// The order id of the maker order.
+	OrderId string `protobuf:"bytes,1,opt,name=order_id" json:"order_id,omitempty"`
+	// The trading pair of the swap orders.
+	PairId string `protobuf:"bytes,2,opt,name=pair_id" json:"pair_id,omitempty"`
+	// The node pub key of the peer which owns the maker order. This is optional but helps locate the order more quickly.
+	PeerPubKey string `protobuf:"bytes,3,opt,name=peer_pub_key" json:"peer_pub_key,omitempty"`
+	// The quantity to swap. The whole order will be swapped if unspecified.
+	Quantity float64 `protobuf:"fixed64,4,opt,name=quantity" json:"quantity,omitempty"`
 }
 
-func (m *BanRequest) Reset()                    { *m = BanRequest{} }
-func (m *BanRequest) String() string            { return proto.CompactTextString(m) }
-func (*BanRequest) ProtoMessage()               {}
-func (*BanRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{11} }
+func (m *ExecuteSwapRequest) Reset()                    { *m = ExecuteSwapRequest{} }
+func (m *ExecuteSwapRequest) String() string            { return proto.CompactTextString(m) }
+func (*ExecuteSwapRequest) ProtoMessage()               {}
+func (*ExecuteSwapRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{11} }
 
-func (m *BanRequest) GetNodePubKey() string {
+func (m *ExecuteSwapRequest) GetOrderId() string {
 	if m != nil {
-		return m.NodePubKey
+		return m.OrderId
 	}
 	return ""
 }
 
-type BanResponse struct {
+func (m *ExecuteSwapRequest) GetPairId() string {
+	if m != nil {
+		return m.PairId
+	}
+	return ""
 }
 
-func (m *BanResponse) Reset()                    { *m = BanResponse{} }
-func (m *BanResponse) String() string            { return proto.CompactTextString(m) }
-func (*BanResponse) ProtoMessage()               {}
-func (*BanResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{12} }
+func (m *ExecuteSwapRequest) GetPeerPubKey() string {
+	if m != nil {
+		return m.PeerPubKey
+	}
+	return ""
+}
+
+func (m *ExecuteSwapRequest) GetQuantity() float64 {
+	if m != nil {
+		return m.Quantity
+	}
+	return 0
+}
+
+type SwapFailure struct {
+	// The global UUID for the order that failed the swap.
+	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId" json:"order_id,omitempty"`
+	// The trading pair that the swap is for.
+	PairId string `protobuf:"bytes,2,opt,name=pair_id" json:"pair_id,omitempty"`
+	// The order quantity that was attempted to be swapped.
+	Quantity float64 `protobuf:"fixed64,3,opt,name=quantity" json:"quantity,omitempty"`
+	// The node pub key of the peer that we attempted to swap with.
+	PeerPubKey string `protobuf:"bytes,4,opt,name=peer_pub_key" json:"peer_pub_key,omitempty"`
+}
+
+func (m *SwapFailure) Reset()                    { *m = SwapFailure{} }
+func (m *SwapFailure) String() string            { return proto.CompactTextString(m) }
+func (*SwapFailure) ProtoMessage()               {}
+func (*SwapFailure) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{12} }
+
+func (m *SwapFailure) GetOrderId() string {
+	if m != nil {
+		return m.OrderId
+	}
+	return ""
+}
+
+func (m *SwapFailure) GetPairId() string {
+	if m != nil {
+		return m.PairId
+	}
+	return ""
+}
+
+func (m *SwapFailure) GetQuantity() float64 {
+	if m != nil {
+		return m.Quantity
+	}
+	return 0
+}
+
+func (m *SwapFailure) GetPeerPubKey() string {
+	if m != nil {
+		return m.PeerPubKey
+	}
+	return ""
+}
 
 type GetInfoRequest struct {
 }
@@ -374,15 +445,21 @@ func (*GetInfoRequest) ProtoMessage()               {}
 func (*GetInfoRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{13} }
 
 type GetInfoResponse struct {
-	Version    string       `protobuf:"bytes,1,opt,name=version" json:"version,omitempty"`
-	NodePubKey string       `protobuf:"bytes,2,opt,name=node_pub_key" json:"node_pub_key,omitempty"`
-	Uris       []string     `protobuf:"bytes,3,rep,name=uris" json:"uris,omitempty"`
-	NumPeers   int32        `protobuf:"varint,4,opt,name=num_peers" json:"num_peers,omitempty"`
-	NumPairs   int32        `protobuf:"varint,5,opt,name=num_pairs" json:"num_pairs,omitempty"`
-	Orders     *OrdersCount `protobuf:"bytes,6,opt,name=orders" json:"orders,omitempty"`
-	Lndbtc     *LndInfo     `protobuf:"bytes,7,opt,name=lndbtc" json:"lndbtc,omitempty"`
-	Lndltc     *LndInfo     `protobuf:"bytes,8,opt,name=lndltc" json:"lndltc,omitempty"`
-	Raiden     *RaidenInfo  `protobuf:"bytes,9,opt,name=raiden" json:"raiden,omitempty"`
+	// The version of this instance of xud.
+	Version string `protobuf:"bytes,1,opt,name=version" json:"version,omitempty"`
+	// The node pub key of this node.
+	NodePubKey string `protobuf:"bytes,2,opt,name=node_pub_key" json:"node_pub_key,omitempty"`
+	// A list of uris that can be used to connect to this node. These are shared with peers.
+	Uris []string `protobuf:"bytes,3,rep,name=uris" json:"uris,omitempty"`
+	// The number of currently connected peers.
+	NumPeers int32 `protobuf:"varint,4,opt,name=num_peers" json:"num_peers,omitempty"`
+	// The number of supported trading pairs.
+	NumPairs int32 `protobuf:"varint,5,opt,name=num_pairs" json:"num_pairs,omitempty"`
+	// The number of active, standing orders in the order book.
+	Orders *OrdersCount `protobuf:"bytes,6,opt,name=orders" json:"orders,omitempty"`
+	Lndbtc *LndInfo     `protobuf:"bytes,7,opt,name=lndbtc" json:"lndbtc,omitempty"`
+	Lndltc *LndInfo     `protobuf:"bytes,8,opt,name=lndltc" json:"lndltc,omitempty"`
+	Raiden *RaidenInfo  `protobuf:"bytes,9,opt,name=raiden" json:"raiden,omitempty"`
 }
 
 func (m *GetInfoResponse) Reset()                    { *m = GetInfoResponse{} }
@@ -453,43 +530,87 @@ func (m *GetInfoResponse) GetRaiden() *RaidenInfo {
 	return nil
 }
 
-type GetOrdersRequest struct {
-	// The trading pair for which to retrieve orders
+type GetNodeInfoRequest struct {
+	// The node pub key of the node for which to get information.
+	NodePubKey string `protobuf:"bytes,1,opt,name=node_pub_key" json:"node_pub_key,omitempty"`
+}
+
+func (m *GetNodeInfoRequest) Reset()                    { *m = GetNodeInfoRequest{} }
+func (m *GetNodeInfoRequest) String() string            { return proto.CompactTextString(m) }
+func (*GetNodeInfoRequest) ProtoMessage()               {}
+func (*GetNodeInfoRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{15} }
+
+func (m *GetNodeInfoRequest) GetNodePubKey() string {
+	if m != nil {
+		return m.NodePubKey
+	}
+	return ""
+}
+
+type GetNodeInfoResponse struct {
+	// The node's reputation score. Points are subtracted for unexpected or potentially malicious
+	// behavior. Points are added when swaps are successfully executed.
+	ReputationScore int32 `protobuf:"varint,1,opt,name=reputationScore,json=reputation" json:"reputationScore,omitempty"`
+	// Whether the node is currently banned.
+	Banned bool `protobuf:"varint,2,opt,name=banned" json:"banned,omitempty"`
+}
+
+func (m *GetNodeInfoResponse) Reset()                    { *m = GetNodeInfoResponse{} }
+func (m *GetNodeInfoResponse) String() string            { return proto.CompactTextString(m) }
+func (*GetNodeInfoResponse) ProtoMessage()               {}
+func (*GetNodeInfoResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{16} }
+
+func (m *GetNodeInfoResponse) GetReputationScore() int32 {
+	if m != nil {
+		return m.ReputationScore
+	}
+	return 0
+}
+
+func (m *GetNodeInfoResponse) GetBanned() bool {
+	if m != nil {
+		return m.Banned
+	}
+	return false
+}
+
+type ListOrdersRequest struct {
+	// The trading pair for which to retrieve orders.
 	PairId string `protobuf:"bytes,1,opt,name=pair_id" json:"pair_id,omitempty"`
-	// Whether own orders should be included in result or not
+	// Whether own orders should be included in result or not.
 	IncludeOwnOrders bool `protobuf:"varint,2,opt,name=include_own_orders" json:"include_own_orders,omitempty"`
 }
 
-func (m *GetOrdersRequest) Reset()                    { *m = GetOrdersRequest{} }
-func (m *GetOrdersRequest) String() string            { return proto.CompactTextString(m) }
-func (*GetOrdersRequest) ProtoMessage()               {}
-func (*GetOrdersRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{15} }
+func (m *ListOrdersRequest) Reset()                    { *m = ListOrdersRequest{} }
+func (m *ListOrdersRequest) String() string            { return proto.CompactTextString(m) }
+func (*ListOrdersRequest) ProtoMessage()               {}
+func (*ListOrdersRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{17} }
 
-func (m *GetOrdersRequest) GetPairId() string {
+func (m *ListOrdersRequest) GetPairId() string {
 	if m != nil {
 		return m.PairId
 	}
 	return ""
 }
 
-func (m *GetOrdersRequest) GetIncludeOwnOrders() bool {
+func (m *ListOrdersRequest) GetIncludeOwnOrders() bool {
 	if m != nil {
 		return m.IncludeOwnOrders
 	}
 	return false
 }
 
-type GetOrdersResponse struct {
-	// A map between pair ids and their buy and sell orders
+type ListOrdersResponse struct {
+	// A map between pair ids and their buy and sell orders.
 	Orders map[string]*Orders `protobuf:"bytes,1,rep,name=orders" json:"orders,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 }
 
-func (m *GetOrdersResponse) Reset()                    { *m = GetOrdersResponse{} }
-func (m *GetOrdersResponse) String() string            { return proto.CompactTextString(m) }
-func (*GetOrdersResponse) ProtoMessage()               {}
-func (*GetOrdersResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{16} }
+func (m *ListOrdersResponse) Reset()                    { *m = ListOrdersResponse{} }
+func (m *ListOrdersResponse) String() string            { return proto.CompactTextString(m) }
+func (*ListOrdersResponse) ProtoMessage()               {}
+func (*ListOrdersResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{18} }
 
-func (m *GetOrdersResponse) GetOrders() map[string]*Orders {
+func (m *ListOrdersResponse) GetOrders() map[string]*Orders {
 	if m != nil {
 		return m.Orders
 	}
@@ -502,17 +623,17 @@ type ListCurrenciesRequest struct {
 func (m *ListCurrenciesRequest) Reset()                    { *m = ListCurrenciesRequest{} }
 func (m *ListCurrenciesRequest) String() string            { return proto.CompactTextString(m) }
 func (*ListCurrenciesRequest) ProtoMessage()               {}
-func (*ListCurrenciesRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{17} }
+func (*ListCurrenciesRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{19} }
 
 type ListCurrenciesResponse struct {
-	// The ticker symbols of supported currencies
+	// A list of ticker symbols of the supported currencies.
 	Currencies []string `protobuf:"bytes,1,rep,name=currencies" json:"currencies,omitempty"`
 }
 
 func (m *ListCurrenciesResponse) Reset()                    { *m = ListCurrenciesResponse{} }
 func (m *ListCurrenciesResponse) String() string            { return proto.CompactTextString(m) }
 func (*ListCurrenciesResponse) ProtoMessage()               {}
-func (*ListCurrenciesResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{18} }
+func (*ListCurrenciesResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{20} }
 
 func (m *ListCurrenciesResponse) GetCurrencies() []string {
 	if m != nil {
@@ -527,17 +648,17 @@ type ListPairsRequest struct {
 func (m *ListPairsRequest) Reset()                    { *m = ListPairsRequest{} }
 func (m *ListPairsRequest) String() string            { return proto.CompactTextString(m) }
 func (*ListPairsRequest) ProtoMessage()               {}
-func (*ListPairsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{19} }
+func (*ListPairsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{21} }
 
 type ListPairsResponse struct {
-	// The supported trading pair tickers in formats like "LTC/BTC"
+	// The list of supported trading pair tickers in formats like "LTC/BTC".
 	Pairs []string `protobuf:"bytes,1,rep,name=pairs" json:"pairs,omitempty"`
 }
 
 func (m *ListPairsResponse) Reset()                    { *m = ListPairsResponse{} }
 func (m *ListPairsResponse) String() string            { return proto.CompactTextString(m) }
 func (*ListPairsResponse) ProtoMessage()               {}
-func (*ListPairsResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{20} }
+func (*ListPairsResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{22} }
 
 func (m *ListPairsResponse) GetPairs() []string {
 	if m != nil {
@@ -552,16 +673,17 @@ type ListPeersRequest struct {
 func (m *ListPeersRequest) Reset()                    { *m = ListPeersRequest{} }
 func (m *ListPeersRequest) String() string            { return proto.CompactTextString(m) }
 func (*ListPeersRequest) ProtoMessage()               {}
-func (*ListPeersRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{21} }
+func (*ListPeersRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{23} }
 
 type ListPeersResponse struct {
+	// The list of connected peers.
 	Peers []*Peer `protobuf:"bytes,1,rep,name=peers" json:"peers,omitempty"`
 }
 
 func (m *ListPeersResponse) Reset()                    { *m = ListPeersResponse{} }
 func (m *ListPeersResponse) String() string            { return proto.CompactTextString(m) }
 func (*ListPeersResponse) ProtoMessage()               {}
-func (*ListPeersResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{22} }
+func (*ListPeersResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{24} }
 
 func (m *ListPeersResponse) GetPeers() []*Peer {
 	if m != nil {
@@ -571,15 +693,18 @@ func (m *ListPeersResponse) GetPeers() []*Peer {
 }
 
 type LndChannels struct {
-	Active   int32 `protobuf:"varint,1,opt,name=active" json:"active,omitempty"`
+	// The number of active/online channels for this lnd instance that can be used for swaps.
+	Active int32 `protobuf:"varint,1,opt,name=active" json:"active,omitempty"`
+	// The number of inactive/offline channels for this lnd instance.
 	Inactive int32 `protobuf:"varint,2,opt,name=inactive" json:"inactive,omitempty"`
-	Pending  int32 `protobuf:"varint,3,opt,name=pending" json:"pending,omitempty"`
+	// The number of channels that are pending on-chain confirmation before they can be used.
+	Pending int32 `protobuf:"varint,3,opt,name=pending" json:"pending,omitempty"`
 }
 
 func (m *LndChannels) Reset()                    { *m = LndChannels{} }
 func (m *LndChannels) String() string            { return proto.CompactTextString(m) }
 func (*LndChannels) ProtoMessage()               {}
-func (*LndChannels) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{23} }
+func (*LndChannels) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{25} }
 
 func (m *LndChannels) GetActive() int32 {
 	if m != nil {
@@ -615,7 +740,7 @@ type LndInfo struct {
 func (m *LndInfo) Reset()                    { *m = LndInfo{} }
 func (m *LndInfo) String() string            { return proto.CompactTextString(m) }
 func (*LndInfo) ProtoMessage()               {}
-func (*LndInfo) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{24} }
+func (*LndInfo) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{26} }
 
 func (m *LndInfo) GetError() string {
 	if m != nil {
@@ -685,12 +810,14 @@ type Order struct {
 	Side OrderSide `protobuf:"varint,8,opt,name=side,enum=xudrpc.OrderSide" json:"side,omitempty"`
 	// Whether this order is a local own order or a remote peer order.
 	IsOwnOrder bool `protobuf:"varint,9,opt,name=is_own_order" json:"is_own_order,omitempty"`
+	// The amount on hold pending swap exectuion.
+	Hold float64 `protobuf:"fixed64,10,opt,name=hold" json:"hold,omitempty"`
 }
 
 func (m *Order) Reset()                    { *m = Order{} }
 func (m *Order) String() string            { return proto.CompactTextString(m) }
 func (*Order) ProtoMessage()               {}
-func (*Order) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{25} }
+func (*Order) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{27} }
 
 type isOrder_OwnOrPeer interface{ isOrder_OwnOrPeer() }
 
@@ -772,6 +899,13 @@ func (m *Order) GetIsOwnOrder() bool {
 		return m.IsOwnOrder
 	}
 	return false
+}
+
+func (m *Order) GetHold() float64 {
+	if m != nil {
+		return m.Hold
+	}
+	return 0
 }
 
 // XXX_OneofFuncs is for the internal use of the proto package.
@@ -856,7 +990,7 @@ type OrderRemoval struct {
 func (m *OrderRemoval) Reset()                    { *m = OrderRemoval{} }
 func (m *OrderRemoval) String() string            { return proto.CompactTextString(m) }
 func (*OrderRemoval) ProtoMessage()               {}
-func (*OrderRemoval) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{26} }
+func (*OrderRemoval) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{28} }
 
 func (m *OrderRemoval) GetQuantity() float64 {
 	if m != nil {
@@ -894,16 +1028,16 @@ func (m *OrderRemoval) GetIsOwnOrder() bool {
 }
 
 type Orders struct {
-	// A list of buy orders sorted by descending price
+	// A list of buy orders sorted by descending price.
 	BuyOrders []*Order `protobuf:"bytes,1,rep,name=buy_orders" json:"buy_orders,omitempty"`
-	// A list of sell orders sorted by ascending price
+	// A list of sell orders sorted by ascending price.
 	SellOrders []*Order `protobuf:"bytes,2,rep,name=sell_orders" json:"sell_orders,omitempty"`
 }
 
 func (m *Orders) Reset()                    { *m = Orders{} }
 func (m *Orders) String() string            { return proto.CompactTextString(m) }
 func (*Orders) ProtoMessage()               {}
-func (*Orders) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{27} }
+func (*Orders) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{29} }
 
 func (m *Orders) GetBuyOrders() []*Order {
 	if m != nil {
@@ -920,14 +1054,16 @@ func (m *Orders) GetSellOrders() []*Order {
 }
 
 type OrdersCount struct {
+	// The number of orders belonging to remote xud nodes.
 	Peer int32 `protobuf:"varint,1,opt,name=peer" json:"peer,omitempty"`
-	Own  int32 `protobuf:"varint,2,opt,name=own" json:"own,omitempty"`
+	// The number of orders belonging to our local xud node.
+	Own int32 `protobuf:"varint,2,opt,name=own" json:"own,omitempty"`
 }
 
 func (m *OrdersCount) Reset()                    { *m = OrdersCount{} }
 func (m *OrdersCount) String() string            { return proto.CompactTextString(m) }
 func (*OrdersCount) ProtoMessage()               {}
-func (*OrdersCount) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{28} }
+func (*OrdersCount) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{30} }
 
 func (m *OrdersCount) GetPeer() int32 {
 	if m != nil {
@@ -944,28 +1080,28 @@ func (m *OrdersCount) GetOwn() int32 {
 }
 
 type Peer struct {
-	// The socket address with host and port for this peer
+	// The socket address with host and port for this peer.
 	Address string `protobuf:"bytes,1,opt,name=address" json:"address,omitempty"`
-	// The node pub key to uniquely identify this peer
+	// The node pub key to uniquely identify this peer.
 	NodePubKey string `protobuf:"bytes,2,opt,name=node_pub_key" json:"node_pub_key,omitempty"`
-	// The lnd BTC pub key associated with this peer
+	// The lnd BTC pub key associated with this peer.
 	LndBtcPubKey string `protobuf:"bytes,3,opt,name=lnd_btc_pub_key" json:"lnd_btc_pub_key,omitempty"`
-	// The lnd LTC pub key associated with this peer
+	// The lnd LTC pub key associated with this peer.
 	LndLtcPubKey string `protobuf:"bytes,4,opt,name=lnd_ltc_pub_key" json:"lnd_ltc_pub_key,omitempty"`
-	// Indicates whether this peer was connected inbound
+	// Indicates whether this peer was connected inbound.
 	Inbound bool `protobuf:"varint,5,opt,name=inbound" json:"inbound,omitempty"`
-	// A list of trading pair tickers supported by this peer
+	// A list of trading pair tickers supported by this peer.
 	Pairs []string `protobuf:"bytes,6,rep,name=pairs" json:"pairs,omitempty"`
-	// The version of xud being used by the peer
+	// The version of xud being used by the peer.
 	XudVersion string `protobuf:"bytes,7,opt,name=xud_version" json:"xud_version,omitempty"`
-	// The time in seconds that we have been connected to this peer
+	// The time in seconds that we have been connected to this peer.
 	SecondsConnected int32 `protobuf:"varint,8,opt,name=seconds_connected" json:"seconds_connected,omitempty"`
 }
 
 func (m *Peer) Reset()                    { *m = Peer{} }
 func (m *Peer) String() string            { return proto.CompactTextString(m) }
 func (*Peer) ProtoMessage()               {}
-func (*Peer) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{29} }
+func (*Peer) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{31} }
 
 func (m *Peer) GetAddress() string {
 	if m != nil {
@@ -1028,18 +1164,18 @@ type PlaceOrderRequest struct {
 	Price float64 `protobuf:"fixed64,1,opt,name=price" json:"price,omitempty"`
 	// The quantity of the order.
 	Quantity float64 `protobuf:"fixed64,2,opt,name=quantity" json:"quantity,omitempty"`
-	// The trading pair that the order is for
+	// The trading pair that the order is for.
 	PairId string `protobuf:"bytes,3,opt,name=pair_id" json:"pair_id,omitempty"`
-	// The local id to assign to the order
+	// The local id to assign to the order.
 	OrderId string `protobuf:"bytes,4,opt,name=order_id" json:"order_id,omitempty"`
-	// Whether the order is a Buy or Sell
+	// Whether the order is a Buy or Sell.
 	Side OrderSide `protobuf:"varint,5,opt,name=side,enum=xudrpc.OrderSide" json:"side,omitempty"`
 }
 
 func (m *PlaceOrderRequest) Reset()                    { *m = PlaceOrderRequest{} }
 func (m *PlaceOrderRequest) String() string            { return proto.CompactTextString(m) }
 func (*PlaceOrderRequest) ProtoMessage()               {}
-func (*PlaceOrderRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{30} }
+func (*PlaceOrderRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{32} }
 
 func (m *PlaceOrderRequest) GetPrice() float64 {
 	if m != nil {
@@ -1077,18 +1213,18 @@ func (m *PlaceOrderRequest) GetSide() OrderSide {
 }
 
 type PlaceOrderResponse struct {
-	// A list of own orders (or portions thereof) that matched the newly placed order
+	// A list of own orders (or portions thereof) that matched the newly placed order.
 	InternalMatches []*Order `protobuf:"bytes,1,rep,name=internal_matches" json:"internal_matches,omitempty"`
-	// A list of swap results of peer orders that matched the newly placed order
-	SwapResults []*SwapResult `protobuf:"bytes,2,rep,name=swap_results" json:"swap_results,omitempty"`
-	// The remaining portion of the order, after matches, that enters the order book
+	// A list of swap results of peer orders that matched the newly placed order.
+	SwapSuccesses []*SwapSuccess `protobuf:"bytes,2,rep,name=swap_successes" json:"swap_successes,omitempty"`
+	// The remaining portion of the order, after matches, that enters the order book.
 	RemainingOrder *Order `protobuf:"bytes,3,opt,name=remaining_order" json:"remaining_order,omitempty"`
 }
 
 func (m *PlaceOrderResponse) Reset()                    { *m = PlaceOrderResponse{} }
 func (m *PlaceOrderResponse) String() string            { return proto.CompactTextString(m) }
 func (*PlaceOrderResponse) ProtoMessage()               {}
-func (*PlaceOrderResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{31} }
+func (*PlaceOrderResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{33} }
 
 func (m *PlaceOrderResponse) GetInternalMatches() []*Order {
 	if m != nil {
@@ -1097,9 +1233,9 @@ func (m *PlaceOrderResponse) GetInternalMatches() []*Order {
 	return nil
 }
 
-func (m *PlaceOrderResponse) GetSwapResults() []*SwapResult {
+func (m *PlaceOrderResponse) GetSwapSuccesses() []*SwapSuccess {
 	if m != nil {
-		return m.SwapResults
+		return m.SwapSuccesses
 	}
 	return nil
 }
@@ -1114,31 +1250,36 @@ func (m *PlaceOrderResponse) GetRemainingOrder() *Order {
 type PlaceOrderEvent struct {
 	// Types that are valid to be assigned to Event:
 	//	*PlaceOrderEvent_InternalMatch
-	//	*PlaceOrderEvent_SwapResult
+	//	*PlaceOrderEvent_SwapSuccess
 	//	*PlaceOrderEvent_RemainingOrder
+	//	*PlaceOrderEvent_SwapFailure
 	Event isPlaceOrderEvent_Event `protobuf_oneof:"event"`
 }
 
 func (m *PlaceOrderEvent) Reset()                    { *m = PlaceOrderEvent{} }
 func (m *PlaceOrderEvent) String() string            { return proto.CompactTextString(m) }
 func (*PlaceOrderEvent) ProtoMessage()               {}
-func (*PlaceOrderEvent) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{32} }
+func (*PlaceOrderEvent) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{34} }
 
 type isPlaceOrderEvent_Event interface{ isPlaceOrderEvent_Event() }
 
 type PlaceOrderEvent_InternalMatch struct {
 	InternalMatch *Order `protobuf:"bytes,1,opt,name=internal_match,oneof"`
 }
-type PlaceOrderEvent_SwapResult struct {
-	SwapResult *SwapResult `protobuf:"bytes,2,opt,name=swap_result,oneof"`
+type PlaceOrderEvent_SwapSuccess struct {
+	SwapSuccess *SwapSuccess `protobuf:"bytes,2,opt,name=swap_success,oneof"`
 }
 type PlaceOrderEvent_RemainingOrder struct {
 	RemainingOrder *Order `protobuf:"bytes,3,opt,name=remaining_order,oneof"`
 }
+type PlaceOrderEvent_SwapFailure struct {
+	SwapFailure *SwapFailure `protobuf:"bytes,4,opt,name=swap_failure,json=swap_failures,oneof"`
+}
 
 func (*PlaceOrderEvent_InternalMatch) isPlaceOrderEvent_Event()  {}
-func (*PlaceOrderEvent_SwapResult) isPlaceOrderEvent_Event()     {}
+func (*PlaceOrderEvent_SwapSuccess) isPlaceOrderEvent_Event()    {}
 func (*PlaceOrderEvent_RemainingOrder) isPlaceOrderEvent_Event() {}
+func (*PlaceOrderEvent_SwapFailure) isPlaceOrderEvent_Event()    {}
 
 func (m *PlaceOrderEvent) GetEvent() isPlaceOrderEvent_Event {
 	if m != nil {
@@ -1154,9 +1295,9 @@ func (m *PlaceOrderEvent) GetInternalMatch() *Order {
 	return nil
 }
 
-func (m *PlaceOrderEvent) GetSwapResult() *SwapResult {
-	if x, ok := m.GetEvent().(*PlaceOrderEvent_SwapResult); ok {
-		return x.SwapResult
+func (m *PlaceOrderEvent) GetSwapSuccess() *SwapSuccess {
+	if x, ok := m.GetEvent().(*PlaceOrderEvent_SwapSuccess); ok {
+		return x.SwapSuccess
 	}
 	return nil
 }
@@ -1168,12 +1309,20 @@ func (m *PlaceOrderEvent) GetRemainingOrder() *Order {
 	return nil
 }
 
+func (m *PlaceOrderEvent) GetSwapFailure() *SwapFailure {
+	if x, ok := m.GetEvent().(*PlaceOrderEvent_SwapFailure); ok {
+		return x.SwapFailure
+	}
+	return nil
+}
+
 // XXX_OneofFuncs is for the internal use of the proto package.
 func (*PlaceOrderEvent) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
 	return _PlaceOrderEvent_OneofMarshaler, _PlaceOrderEvent_OneofUnmarshaler, _PlaceOrderEvent_OneofSizer, []interface{}{
 		(*PlaceOrderEvent_InternalMatch)(nil),
-		(*PlaceOrderEvent_SwapResult)(nil),
+		(*PlaceOrderEvent_SwapSuccess)(nil),
 		(*PlaceOrderEvent_RemainingOrder)(nil),
+		(*PlaceOrderEvent_SwapFailure)(nil),
 	}
 }
 
@@ -1186,14 +1335,19 @@ func _PlaceOrderEvent_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 		if err := b.EncodeMessage(x.InternalMatch); err != nil {
 			return err
 		}
-	case *PlaceOrderEvent_SwapResult:
+	case *PlaceOrderEvent_SwapSuccess:
 		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.SwapResult); err != nil {
+		if err := b.EncodeMessage(x.SwapSuccess); err != nil {
 			return err
 		}
 	case *PlaceOrderEvent_RemainingOrder:
 		b.EncodeVarint(3<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.RemainingOrder); err != nil {
+			return err
+		}
+	case *PlaceOrderEvent_SwapFailure:
+		b.EncodeVarint(4<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.SwapFailure); err != nil {
 			return err
 		}
 	case nil:
@@ -1214,13 +1368,13 @@ func _PlaceOrderEvent_OneofUnmarshaler(msg proto.Message, tag, wire int, b *prot
 		err := b.DecodeMessage(msg)
 		m.Event = &PlaceOrderEvent_InternalMatch{msg}
 		return true, err
-	case 2: // event.swap_result
+	case 2: // event.swap_success
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
-		msg := new(SwapResult)
+		msg := new(SwapSuccess)
 		err := b.DecodeMessage(msg)
-		m.Event = &PlaceOrderEvent_SwapResult{msg}
+		m.Event = &PlaceOrderEvent_SwapSuccess{msg}
 		return true, err
 	case 3: // event.remaining_order
 		if wire != proto.WireBytes {
@@ -1229,6 +1383,14 @@ func _PlaceOrderEvent_OneofUnmarshaler(msg proto.Message, tag, wire int, b *prot
 		msg := new(Order)
 		err := b.DecodeMessage(msg)
 		m.Event = &PlaceOrderEvent_RemainingOrder{msg}
+		return true, err
+	case 4: // event.swap_failure
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(SwapFailure)
+		err := b.DecodeMessage(msg)
+		m.Event = &PlaceOrderEvent_SwapFailure{msg}
 		return true, err
 	default:
 		return false, nil
@@ -1244,14 +1406,19 @@ func _PlaceOrderEvent_OneofSizer(msg proto.Message) (n int) {
 		n += proto.SizeVarint(1<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *PlaceOrderEvent_SwapResult:
-		s := proto.Size(x.SwapResult)
+	case *PlaceOrderEvent_SwapSuccess:
+		s := proto.Size(x.SwapSuccess)
 		n += proto.SizeVarint(2<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *PlaceOrderEvent_RemainingOrder:
 		s := proto.Size(x.RemainingOrder)
 		n += proto.SizeVarint(3<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *PlaceOrderEvent_SwapFailure:
+		s := proto.Size(x.SwapFailure)
+		n += proto.SizeVarint(4<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case nil:
@@ -1271,7 +1438,7 @@ type RaidenInfo struct {
 func (m *RaidenInfo) Reset()                    { *m = RaidenInfo{} }
 func (m *RaidenInfo) String() string            { return proto.CompactTextString(m) }
 func (*RaidenInfo) ProtoMessage()               {}
-func (*RaidenInfo) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{33} }
+func (*RaidenInfo) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{35} }
 
 func (m *RaidenInfo) GetError() string {
 	if m != nil {
@@ -1309,7 +1476,7 @@ type RemoveCurrencyRequest struct {
 func (m *RemoveCurrencyRequest) Reset()                    { *m = RemoveCurrencyRequest{} }
 func (m *RemoveCurrencyRequest) String() string            { return proto.CompactTextString(m) }
 func (*RemoveCurrencyRequest) ProtoMessage()               {}
-func (*RemoveCurrencyRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{34} }
+func (*RemoveCurrencyRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{36} }
 
 func (m *RemoveCurrencyRequest) GetCurrency() string {
 	if m != nil {
@@ -1324,17 +1491,52 @@ type RemoveCurrencyResponse struct {
 func (m *RemoveCurrencyResponse) Reset()                    { *m = RemoveCurrencyResponse{} }
 func (m *RemoveCurrencyResponse) String() string            { return proto.CompactTextString(m) }
 func (*RemoveCurrencyResponse) ProtoMessage()               {}
-func (*RemoveCurrencyResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{35} }
+func (*RemoveCurrencyResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{37} }
+
+type RemoveOrderRequest struct {
+	// The local id of the order to remove.
+	OrderId string `protobuf:"bytes,1,opt,name=order_id" json:"order_id,omitempty"`
+}
+
+func (m *RemoveOrderRequest) Reset()                    { *m = RemoveOrderRequest{} }
+func (m *RemoveOrderRequest) String() string            { return proto.CompactTextString(m) }
+func (*RemoveOrderRequest) ProtoMessage()               {}
+func (*RemoveOrderRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{38} }
+
+func (m *RemoveOrderRequest) GetOrderId() string {
+	if m != nil {
+		return m.OrderId
+	}
+	return ""
+}
+
+type RemoveOrderResponse struct {
+	// Any portion of the order that was on hold due to ongoing swaps at the time of the request
+	// and could not be removed until after the swaps finish.
+	QuantityOnHold float64 `protobuf:"fixed64,1,opt,name=quantity_on_hold,json=hold" json:"quantity_on_hold,omitempty"`
+}
+
+func (m *RemoveOrderResponse) Reset()                    { *m = RemoveOrderResponse{} }
+func (m *RemoveOrderResponse) String() string            { return proto.CompactTextString(m) }
+func (*RemoveOrderResponse) ProtoMessage()               {}
+func (*RemoveOrderResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{39} }
+
+func (m *RemoveOrderResponse) GetQuantityOnHold() float64 {
+	if m != nil {
+		return m.QuantityOnHold
+	}
+	return 0
+}
 
 type RemovePairRequest struct {
-	// The trading pair ticker to remove, such as "LTC/BTC"
+	// The trading pair ticker to remove in a format such as "LTC/BTC".
 	PairId string `protobuf:"bytes,1,opt,name=pair_id" json:"pair_id,omitempty"`
 }
 
 func (m *RemovePairRequest) Reset()                    { *m = RemovePairRequest{} }
 func (m *RemovePairRequest) String() string            { return proto.CompactTextString(m) }
 func (*RemovePairRequest) ProtoMessage()               {}
-func (*RemovePairRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{36} }
+func (*RemovePairRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{40} }
 
 func (m *RemovePairRequest) GetPairId() string {
 	if m != nil {
@@ -1349,7 +1551,7 @@ type RemovePairResponse struct {
 func (m *RemovePairResponse) Reset()                    { *m = RemovePairResponse{} }
 func (m *RemovePairResponse) String() string            { return proto.CompactTextString(m) }
 func (*RemovePairResponse) ProtoMessage()               {}
-func (*RemovePairResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{37} }
+func (*RemovePairResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{41} }
 
 type ShutdownRequest struct {
 }
@@ -1357,7 +1559,7 @@ type ShutdownRequest struct {
 func (m *ShutdownRequest) Reset()                    { *m = ShutdownRequest{} }
 func (m *ShutdownRequest) String() string            { return proto.CompactTextString(m) }
 func (*ShutdownRequest) ProtoMessage()               {}
-func (*ShutdownRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{38} }
+func (*ShutdownRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{42} }
 
 type ShutdownResponse struct {
 }
@@ -1365,15 +1567,24 @@ type ShutdownResponse struct {
 func (m *ShutdownResponse) Reset()                    { *m = ShutdownResponse{} }
 func (m *ShutdownResponse) String() string            { return proto.CompactTextString(m) }
 func (*ShutdownResponse) ProtoMessage()               {}
-func (*ShutdownResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{39} }
+func (*ShutdownResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{43} }
 
 type SubscribeAddedOrdersRequest struct {
+	// Whether to transmit all existing active orders upon establishing the stream.
+	Existing bool `protobuf:"varint,1,opt,name=existing" json:"existing,omitempty"`
 }
 
 func (m *SubscribeAddedOrdersRequest) Reset()                    { *m = SubscribeAddedOrdersRequest{} }
 func (m *SubscribeAddedOrdersRequest) String() string            { return proto.CompactTextString(m) }
 func (*SubscribeAddedOrdersRequest) ProtoMessage()               {}
-func (*SubscribeAddedOrdersRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{40} }
+func (*SubscribeAddedOrdersRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{44} }
+
+func (m *SubscribeAddedOrdersRequest) GetExisting() bool {
+	if m != nil {
+		return m.Existing
+	}
+	return false
+}
 
 type SubscribeRemovedOrdersRequest struct {
 }
@@ -1381,26 +1592,36 @@ type SubscribeRemovedOrdersRequest struct {
 func (m *SubscribeRemovedOrdersRequest) Reset()                    { *m = SubscribeRemovedOrdersRequest{} }
 func (m *SubscribeRemovedOrdersRequest) String() string            { return proto.CompactTextString(m) }
 func (*SubscribeRemovedOrdersRequest) ProtoMessage()               {}
-func (*SubscribeRemovedOrdersRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{41} }
+func (*SubscribeRemovedOrdersRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{45} }
 
 type SubscribeSwapsRequest struct {
+	// Whether to include the results for swaps initiated via the PlaceOrder or ExecuteSwap calls.
+	// These swap results are also returned in the responses for the respective calls.
+	IncludeTaker bool `protobuf:"varint,1,opt,name=include_taker" json:"include_taker,omitempty"`
 }
 
 func (m *SubscribeSwapsRequest) Reset()                    { *m = SubscribeSwapsRequest{} }
 func (m *SubscribeSwapsRequest) String() string            { return proto.CompactTextString(m) }
 func (*SubscribeSwapsRequest) ProtoMessage()               {}
-func (*SubscribeSwapsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{42} }
+func (*SubscribeSwapsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{46} }
 
-type SwapResult struct {
+func (m *SubscribeSwapsRequest) GetIncludeTaker() bool {
+	if m != nil {
+		return m.IncludeTaker
+	}
+	return false
+}
+
+type SwapSuccess struct {
 	// The global UUID for the order that was swapped.
 	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId" json:"order_id,omitempty"`
 	// The local id for the order that was swapped.
 	LocalId string `protobuf:"bytes,2,opt,name=local_id" json:"local_id,omitempty"`
-	// The trading pair that this order is for.
+	// The trading pair that the swap is for.
 	PairId string `protobuf:"bytes,3,opt,name=pair_id" json:"pair_id,omitempty"`
 	// The order quantity that was swapped.
 	Quantity float64 `protobuf:"fixed64,4,opt,name=quantity" json:"quantity,omitempty"`
-	// The hex-encoded r_hash for the swap payments.
+	// The hex-encoded payment hash for the swaps.
 	RHash string `protobuf:"bytes,5,opt,name=r_hash" json:"r_hash,omitempty"`
 	// The amount of subunits (satoshis) received.
 	AmountReceived int64 `protobuf:"varint,6,opt,name=amount_received" json:"amount_received,omitempty"`
@@ -1408,87 +1629,107 @@ type SwapResult struct {
 	AmountSent int64 `protobuf:"varint,7,opt,name=amount_sent" json:"amount_sent,omitempty"`
 	// The node pub key of the peer that executed this order.
 	PeerPubKey string `protobuf:"bytes,8,opt,name=peer_pub_key" json:"peer_pub_key,omitempty"`
-	// Our role in the swap, either MAKER or TAKER
-	Role SwapResult_Role `protobuf:"varint,9,opt,name=role,enum=xudrpc.SwapResult_Role" json:"role,omitempty"`
+	// Our role in the swap, either MAKER or TAKER.
+	Role SwapSuccess_Role `protobuf:"varint,9,opt,name=role,enum=xudrpc.SwapSuccess_Role" json:"role,omitempty"`
+	// The ticker symbol of the currency received.
+	CurrencyReceived string `protobuf:"bytes,10,opt,name=currency_received" json:"currency_received,omitempty"`
+	// The ticker symbol of the currency sent.
+	CurrencySent string `protobuf:"bytes,11,opt,name=currency_sent" json:"currency_sent,omitempty"`
 }
 
-func (m *SwapResult) Reset()                    { *m = SwapResult{} }
-func (m *SwapResult) String() string            { return proto.CompactTextString(m) }
-func (*SwapResult) ProtoMessage()               {}
-func (*SwapResult) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{43} }
+func (m *SwapSuccess) Reset()                    { *m = SwapSuccess{} }
+func (m *SwapSuccess) String() string            { return proto.CompactTextString(m) }
+func (*SwapSuccess) ProtoMessage()               {}
+func (*SwapSuccess) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{47} }
 
-func (m *SwapResult) GetOrderId() string {
+func (m *SwapSuccess) GetOrderId() string {
 	if m != nil {
 		return m.OrderId
 	}
 	return ""
 }
 
-func (m *SwapResult) GetLocalId() string {
+func (m *SwapSuccess) GetLocalId() string {
 	if m != nil {
 		return m.LocalId
 	}
 	return ""
 }
 
-func (m *SwapResult) GetPairId() string {
+func (m *SwapSuccess) GetPairId() string {
 	if m != nil {
 		return m.PairId
 	}
 	return ""
 }
 
-func (m *SwapResult) GetQuantity() float64 {
+func (m *SwapSuccess) GetQuantity() float64 {
 	if m != nil {
 		return m.Quantity
 	}
 	return 0
 }
 
-func (m *SwapResult) GetRHash() string {
+func (m *SwapSuccess) GetRHash() string {
 	if m != nil {
 		return m.RHash
 	}
 	return ""
 }
 
-func (m *SwapResult) GetAmountReceived() int64 {
+func (m *SwapSuccess) GetAmountReceived() int64 {
 	if m != nil {
 		return m.AmountReceived
 	}
 	return 0
 }
 
-func (m *SwapResult) GetAmountSent() int64 {
+func (m *SwapSuccess) GetAmountSent() int64 {
 	if m != nil {
 		return m.AmountSent
 	}
 	return 0
 }
 
-func (m *SwapResult) GetPeerPubKey() string {
+func (m *SwapSuccess) GetPeerPubKey() string {
 	if m != nil {
 		return m.PeerPubKey
 	}
 	return ""
 }
 
-func (m *SwapResult) GetRole() SwapResult_Role {
+func (m *SwapSuccess) GetRole() SwapSuccess_Role {
 	if m != nil {
 		return m.Role
 	}
-	return SwapResult_TAKER
+	return SwapSuccess_TAKER
+}
+
+func (m *SwapSuccess) GetCurrencyReceived() string {
+	if m != nil {
+		return m.CurrencyReceived
+	}
+	return ""
+}
+
+func (m *SwapSuccess) GetCurrencySent() string {
+	if m != nil {
+		return m.CurrencySent
+	}
+	return ""
 }
 
 type UnbanRequest struct {
+	// The node pub key of the peer to unban.
 	NodePubKey string `protobuf:"bytes,1,opt,name=node_pub_key" json:"node_pub_key,omitempty"`
-	Reconnect  bool   `protobuf:"varint,2,opt,name=reconnect" json:"reconnect,omitempty"`
+	// Whether to attempt to connect to the peer after it is unbanned.
+	Reconnect bool `protobuf:"varint,2,opt,name=reconnect" json:"reconnect,omitempty"`
 }
 
 func (m *UnbanRequest) Reset()                    { *m = UnbanRequest{} }
 func (m *UnbanRequest) String() string            { return proto.CompactTextString(m) }
 func (*UnbanRequest) ProtoMessage()               {}
-func (*UnbanRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{44} }
+func (*UnbanRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{48} }
 
 func (m *UnbanRequest) GetNodePubKey() string {
 	if m != nil {
@@ -1510,26 +1751,28 @@ type UnbanResponse struct {
 func (m *UnbanResponse) Reset()                    { *m = UnbanResponse{} }
 func (m *UnbanResponse) String() string            { return proto.CompactTextString(m) }
 func (*UnbanResponse) ProtoMessage()               {}
-func (*UnbanResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{45} }
+func (*UnbanResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{49} }
 
 func init() {
 	proto.RegisterType((*AddCurrencyRequest)(nil), "xudrpc.AddCurrencyRequest")
 	proto.RegisterType((*AddCurrencyResponse)(nil), "xudrpc.AddCurrencyResponse")
 	proto.RegisterType((*AddPairRequest)(nil), "xudrpc.AddPairRequest")
 	proto.RegisterType((*AddPairResponse)(nil), "xudrpc.AddPairResponse")
-	proto.RegisterType((*RemoveOrderRequest)(nil), "xudrpc.RemoveOrderRequest")
-	proto.RegisterType((*RemoveOrderResponse)(nil), "xudrpc.RemoveOrderResponse")
+	proto.RegisterType((*BanRequest)(nil), "xudrpc.BanRequest")
+	proto.RegisterType((*BanResponse)(nil), "xudrpc.BanResponse")
 	proto.RegisterType((*ChannelBalance)(nil), "xudrpc.ChannelBalance")
 	proto.RegisterType((*ChannelBalanceRequest)(nil), "xudrpc.ChannelBalanceRequest")
 	proto.RegisterType((*ChannelBalanceResponse)(nil), "xudrpc.ChannelBalanceResponse")
 	proto.RegisterType((*ConnectRequest)(nil), "xudrpc.ConnectRequest")
 	proto.RegisterType((*ConnectResponse)(nil), "xudrpc.ConnectResponse")
-	proto.RegisterType((*BanRequest)(nil), "xudrpc.BanRequest")
-	proto.RegisterType((*BanResponse)(nil), "xudrpc.BanResponse")
+	proto.RegisterType((*ExecuteSwapRequest)(nil), "xudrpc.ExecuteSwapRequest")
+	proto.RegisterType((*SwapFailure)(nil), "xudrpc.SwapFailure")
 	proto.RegisterType((*GetInfoRequest)(nil), "xudrpc.GetInfoRequest")
 	proto.RegisterType((*GetInfoResponse)(nil), "xudrpc.GetInfoResponse")
-	proto.RegisterType((*GetOrdersRequest)(nil), "xudrpc.GetOrdersRequest")
-	proto.RegisterType((*GetOrdersResponse)(nil), "xudrpc.GetOrdersResponse")
+	proto.RegisterType((*GetNodeInfoRequest)(nil), "xudrpc.GetNodeInfoRequest")
+	proto.RegisterType((*GetNodeInfoResponse)(nil), "xudrpc.GetNodeInfoResponse")
+	proto.RegisterType((*ListOrdersRequest)(nil), "xudrpc.ListOrdersRequest")
+	proto.RegisterType((*ListOrdersResponse)(nil), "xudrpc.ListOrdersResponse")
 	proto.RegisterType((*ListCurrenciesRequest)(nil), "xudrpc.ListCurrenciesRequest")
 	proto.RegisterType((*ListCurrenciesResponse)(nil), "xudrpc.ListCurrenciesResponse")
 	proto.RegisterType((*ListPairsRequest)(nil), "xudrpc.ListPairsRequest")
@@ -1549,6 +1792,8 @@ func init() {
 	proto.RegisterType((*RaidenInfo)(nil), "xudrpc.RaidenInfo")
 	proto.RegisterType((*RemoveCurrencyRequest)(nil), "xudrpc.RemoveCurrencyRequest")
 	proto.RegisterType((*RemoveCurrencyResponse)(nil), "xudrpc.RemoveCurrencyResponse")
+	proto.RegisterType((*RemoveOrderRequest)(nil), "xudrpc.RemoveOrderRequest")
+	proto.RegisterType((*RemoveOrderResponse)(nil), "xudrpc.RemoveOrderResponse")
 	proto.RegisterType((*RemovePairRequest)(nil), "xudrpc.RemovePairRequest")
 	proto.RegisterType((*RemovePairResponse)(nil), "xudrpc.RemovePairResponse")
 	proto.RegisterType((*ShutdownRequest)(nil), "xudrpc.ShutdownRequest")
@@ -1556,12 +1801,12 @@ func init() {
 	proto.RegisterType((*SubscribeAddedOrdersRequest)(nil), "xudrpc.SubscribeAddedOrdersRequest")
 	proto.RegisterType((*SubscribeRemovedOrdersRequest)(nil), "xudrpc.SubscribeRemovedOrdersRequest")
 	proto.RegisterType((*SubscribeSwapsRequest)(nil), "xudrpc.SubscribeSwapsRequest")
-	proto.RegisterType((*SwapResult)(nil), "xudrpc.SwapResult")
+	proto.RegisterType((*SwapSuccess)(nil), "xudrpc.SwapSuccess")
 	proto.RegisterType((*UnbanRequest)(nil), "xudrpc.UnbanRequest")
 	proto.RegisterType((*UnbanResponse)(nil), "xudrpc.UnbanResponse")
 	proto.RegisterEnum("xudrpc.OrderSide", OrderSide_name, OrderSide_value)
 	proto.RegisterEnum("xudrpc.AddCurrencyRequest_SwapClient", AddCurrencyRequest_SwapClient_name, AddCurrencyRequest_SwapClient_value)
-	proto.RegisterEnum("xudrpc.SwapResult_Role", SwapResult_Role_name, SwapResult_Role_value)
+	proto.RegisterEnum("xudrpc.SwapSuccess_Role", SwapSuccess_Role_name, SwapSuccess_Role_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1575,44 +1820,61 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for Xud service
 
 type XudClient interface {
-	// Add a currency to the list of supported currencies.
+	// Adds a currency to the list of supported currencies. Once added, the currency may be used for
+	// new trading pairs.
 	AddCurrency(ctx context.Context, in *AddCurrencyRequest, opts ...grpc.CallOption) (*AddCurrencyResponse, error)
-	// Add a trading pair to the list of supported trading pairs.
+	// Adds a trading pair to the list of supported trading pairs. The newly supported pair is
+	// advertised to peers so they may begin sending orders for it.
 	AddPair(ctx context.Context, in *AddPairRequest, opts ...grpc.CallOption) (*AddPairResponse, error)
-	// Removes an order from the order book by its local id.
+	// Removes an order from the order book by its local id. This should be called when an order is
+	// canceled or filled outside of xud. Removed orders become immediately unavailable for swaps,
+	// and peers are notified that the order is no longer valid. Any portion of the order that is
+	// on hold due to ongoing swaps will not be removed until after the swap attempts complete.
 	RemoveOrder(ctx context.Context, in *RemoveOrderRequest, opts ...grpc.CallOption) (*RemoveOrderResponse, error)
-	// Get the total balance available across all channels for a given currency.
+	// Gets the total balance available across all payment channels for one or all currencies.
 	ChannelBalance(ctx context.Context, in *ChannelBalanceRequest, opts ...grpc.CallOption) (*ChannelBalanceResponse, error)
-	// Connect to an XU node.
+	// Attempts to connect to a node. Once connected, the node is added to the list of peers and
+	// becomes available for swaps and trading. A handshake exchanges information about the peer's
+	// supported trading and swap clients. Orders will be shared with the peer upon connection and
+	// upon new order placements.
 	Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectResponse, error)
-	// Ban a XU node manually and disconnect from it.
+	// Bans a node and immediately disconnects from it. This can be used to prevent any connections
+	// to a specific node.
 	Ban(ctx context.Context, in *BanRequest, opts ...grpc.CallOption) (*BanResponse, error)
-	// Remove ban from XU node manually and connect to it.
+	// Removes a ban from a node manually and, optionally, attempts to connect to it.
 	Unban(ctx context.Context, in *UnbanRequest, opts ...grpc.CallOption) (*UnbanResponse, error)
-	// Get general information about this Exchange Union node.
+	// Gets general information about this node.
 	GetInfo(ctx context.Context, in *GetInfoRequest, opts ...grpc.CallOption) (*GetInfoResponse, error)
+	// Gets general information about a node.
+	GetNodeInfo(ctx context.Context, in *GetNodeInfoRequest, opts ...grpc.CallOption) (*GetNodeInfoResponse, error)
 	// Gets orders from the order book. This call returns the state of the order book at a given point
 	// in time, although it is not guaranteed to still be vaild by the time a response is received
 	// and processed by a client. It accepts an optional trading pair id parameter. If specified, only
 	// orders for that particular trading pair are returned. Otherwise, all orders are returned. Orders
 	// are separated into buys and sells for each trading pair, but unsorted.
-	GetOrders(ctx context.Context, in *GetOrdersRequest, opts ...grpc.CallOption) (*GetOrdersResponse, error)
-	// Get the list of the order book's supported currencies.
+	ListOrders(ctx context.Context, in *ListOrdersRequest, opts ...grpc.CallOption) (*ListOrdersResponse, error)
+	// Gets a list of this node's supported currencies.
 	ListCurrencies(ctx context.Context, in *ListCurrenciesRequest, opts ...grpc.CallOption) (*ListCurrenciesResponse, error)
-	// Get the list of the order book's suported trading pairs.
+	// Gets a list of this nodes suported trading pairs.
 	ListPairs(ctx context.Context, in *ListPairsRequest, opts ...grpc.CallOption) (*ListPairsResponse, error)
-	// Get a list of connected peers.
+	// Gets a list of connected peers.
 	ListPeers(ctx context.Context, in *ListPeersRequest, opts ...grpc.CallOption) (*ListPeersResponse, error)
-	// Add an order to the order book.
+	// Adds an order to the order book.
 	// If price is zero or unspecified a market order will get added.
 	PlaceOrder(ctx context.Context, in *PlaceOrderRequest, opts ...grpc.CallOption) (Xud_PlaceOrderClient, error)
 	// The synchronous non-streaming version of PlaceOrder.
 	PlaceOrderSync(ctx context.Context, in *PlaceOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error)
-	// Remove a currency.
+	// Execute a swap on a maker peer order
+	ExecuteSwap(ctx context.Context, in *ExecuteSwapRequest, opts ...grpc.CallOption) (*SwapSuccess, error)
+	// Removes a currency from the list of supported currencies. Only currencies that are not in use
+	// for any currently supported trading pairs may be removed. Once removed, the currency can no
+	// longer be used for any supported trading pairs.
 	RemoveCurrency(ctx context.Context, in *RemoveCurrencyRequest, opts ...grpc.CallOption) (*RemoveCurrencyResponse, error)
-	// Remove a trading pair.
+	// Removes a trading pair from the list of currently supported trading pair. This call will
+	// effectively cancel any standing orders for that trading pair. Peers are informed when a pair
+	// is no longer supported so that they will know to stop sending orders for it.
 	RemovePair(ctx context.Context, in *RemovePairRequest, opts ...grpc.CallOption) (*RemovePairResponse, error)
-	// Begin shutting down xud.
+	// Begin gracefully shutting down xud.
 	Shutdown(ctx context.Context, in *ShutdownRequest, opts ...grpc.CallOption) (*ShutdownResponse, error)
 	// Subscribes to orders being added to the order book. This call, together with SubscribeRemovedOrders,
 	// allows the client to maintain an up-to-date view of the order book. For example, an exchange that
@@ -1625,10 +1887,11 @@ type XudClient interface {
 	// to them would subscribe to this streaming call to be alerted when part or all of an existing order
 	// is no longer available for trading.
 	SubscribeRemovedOrders(ctx context.Context, in *SubscribeRemovedOrdersRequest, opts ...grpc.CallOption) (Xud_SubscribeRemovedOrdersClient, error)
-	// Subscribes to completed swaps that are initiated by a remote peer. This call allows the client to
-	// get real-time notifications when its orders are filled by a remote taker. It can be used for
-	// tracking order executions, updating balances, and informing a trader when one of their orders
-	// is settled through Exchange Union network.
+	// Subscribes to completed swaps. By default, only swaps that are initiated by a remote peer are
+	// transmitted unless a flag is set to include swaps initiated by the local node. This call allows
+	// the client to get real-time notifications when its orders are filled by a peer. It can be used
+	// for tracking order executions, updating balances, and informing a trader when one of their orders
+	// is settled through the Exchange Union network.
 	SubscribeSwaps(ctx context.Context, in *SubscribeSwapsRequest, opts ...grpc.CallOption) (Xud_SubscribeSwapsClient, error)
 }
 
@@ -1712,9 +1975,18 @@ func (c *xudClient) GetInfo(ctx context.Context, in *GetInfoRequest, opts ...grp
 	return out, nil
 }
 
-func (c *xudClient) GetOrders(ctx context.Context, in *GetOrdersRequest, opts ...grpc.CallOption) (*GetOrdersResponse, error) {
-	out := new(GetOrdersResponse)
-	err := grpc.Invoke(ctx, "/xudrpc.Xud/GetOrders", in, out, c.cc, opts...)
+func (c *xudClient) GetNodeInfo(ctx context.Context, in *GetNodeInfoRequest, opts ...grpc.CallOption) (*GetNodeInfoResponse, error) {
+	out := new(GetNodeInfoResponse)
+	err := grpc.Invoke(ctx, "/xudrpc.Xud/GetNodeInfo", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *xudClient) ListOrders(ctx context.Context, in *ListOrdersRequest, opts ...grpc.CallOption) (*ListOrdersResponse, error) {
+	out := new(ListOrdersResponse)
+	err := grpc.Invoke(ctx, "/xudrpc.Xud/ListOrders", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1783,6 +2055,15 @@ func (x *xudPlaceOrderClient) Recv() (*PlaceOrderEvent, error) {
 func (c *xudClient) PlaceOrderSync(ctx context.Context, in *PlaceOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error) {
 	out := new(PlaceOrderResponse)
 	err := grpc.Invoke(ctx, "/xudrpc.Xud/PlaceOrderSync", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *xudClient) ExecuteSwap(ctx context.Context, in *ExecuteSwapRequest, opts ...grpc.CallOption) (*SwapSuccess, error) {
+	out := new(SwapSuccess)
+	err := grpc.Invoke(ctx, "/xudrpc.Xud/ExecuteSwap", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1896,7 +2177,7 @@ func (c *xudClient) SubscribeSwaps(ctx context.Context, in *SubscribeSwapsReques
 }
 
 type Xud_SubscribeSwapsClient interface {
-	Recv() (*SwapResult, error)
+	Recv() (*SwapSuccess, error)
 	grpc.ClientStream
 }
 
@@ -1904,8 +2185,8 @@ type xudSubscribeSwapsClient struct {
 	grpc.ClientStream
 }
 
-func (x *xudSubscribeSwapsClient) Recv() (*SwapResult, error) {
-	m := new(SwapResult)
+func (x *xudSubscribeSwapsClient) Recv() (*SwapSuccess, error) {
+	m := new(SwapSuccess)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -1915,44 +2196,61 @@ func (x *xudSubscribeSwapsClient) Recv() (*SwapResult, error) {
 // Server API for Xud service
 
 type XudServer interface {
-	// Add a currency to the list of supported currencies.
+	// Adds a currency to the list of supported currencies. Once added, the currency may be used for
+	// new trading pairs.
 	AddCurrency(context.Context, *AddCurrencyRequest) (*AddCurrencyResponse, error)
-	// Add a trading pair to the list of supported trading pairs.
+	// Adds a trading pair to the list of supported trading pairs. The newly supported pair is
+	// advertised to peers so they may begin sending orders for it.
 	AddPair(context.Context, *AddPairRequest) (*AddPairResponse, error)
-	// Removes an order from the order book by its local id.
+	// Removes an order from the order book by its local id. This should be called when an order is
+	// canceled or filled outside of xud. Removed orders become immediately unavailable for swaps,
+	// and peers are notified that the order is no longer valid. Any portion of the order that is
+	// on hold due to ongoing swaps will not be removed until after the swap attempts complete.
 	RemoveOrder(context.Context, *RemoveOrderRequest) (*RemoveOrderResponse, error)
-	// Get the total balance available across all channels for a given currency.
+	// Gets the total balance available across all payment channels for one or all currencies.
 	ChannelBalance(context.Context, *ChannelBalanceRequest) (*ChannelBalanceResponse, error)
-	// Connect to an XU node.
+	// Attempts to connect to a node. Once connected, the node is added to the list of peers and
+	// becomes available for swaps and trading. A handshake exchanges information about the peer's
+	// supported trading and swap clients. Orders will be shared with the peer upon connection and
+	// upon new order placements.
 	Connect(context.Context, *ConnectRequest) (*ConnectResponse, error)
-	// Ban a XU node manually and disconnect from it.
+	// Bans a node and immediately disconnects from it. This can be used to prevent any connections
+	// to a specific node.
 	Ban(context.Context, *BanRequest) (*BanResponse, error)
-	// Remove ban from XU node manually and connect to it.
+	// Removes a ban from a node manually and, optionally, attempts to connect to it.
 	Unban(context.Context, *UnbanRequest) (*UnbanResponse, error)
-	// Get general information about this Exchange Union node.
+	// Gets general information about this node.
 	GetInfo(context.Context, *GetInfoRequest) (*GetInfoResponse, error)
+	// Gets general information about a node.
+	GetNodeInfo(context.Context, *GetNodeInfoRequest) (*GetNodeInfoResponse, error)
 	// Gets orders from the order book. This call returns the state of the order book at a given point
 	// in time, although it is not guaranteed to still be vaild by the time a response is received
 	// and processed by a client. It accepts an optional trading pair id parameter. If specified, only
 	// orders for that particular trading pair are returned. Otherwise, all orders are returned. Orders
 	// are separated into buys and sells for each trading pair, but unsorted.
-	GetOrders(context.Context, *GetOrdersRequest) (*GetOrdersResponse, error)
-	// Get the list of the order book's supported currencies.
+	ListOrders(context.Context, *ListOrdersRequest) (*ListOrdersResponse, error)
+	// Gets a list of this node's supported currencies.
 	ListCurrencies(context.Context, *ListCurrenciesRequest) (*ListCurrenciesResponse, error)
-	// Get the list of the order book's suported trading pairs.
+	// Gets a list of this nodes suported trading pairs.
 	ListPairs(context.Context, *ListPairsRequest) (*ListPairsResponse, error)
-	// Get a list of connected peers.
+	// Gets a list of connected peers.
 	ListPeers(context.Context, *ListPeersRequest) (*ListPeersResponse, error)
-	// Add an order to the order book.
+	// Adds an order to the order book.
 	// If price is zero or unspecified a market order will get added.
 	PlaceOrder(*PlaceOrderRequest, Xud_PlaceOrderServer) error
 	// The synchronous non-streaming version of PlaceOrder.
 	PlaceOrderSync(context.Context, *PlaceOrderRequest) (*PlaceOrderResponse, error)
-	// Remove a currency.
+	// Execute a swap on a maker peer order
+	ExecuteSwap(context.Context, *ExecuteSwapRequest) (*SwapSuccess, error)
+	// Removes a currency from the list of supported currencies. Only currencies that are not in use
+	// for any currently supported trading pairs may be removed. Once removed, the currency can no
+	// longer be used for any supported trading pairs.
 	RemoveCurrency(context.Context, *RemoveCurrencyRequest) (*RemoveCurrencyResponse, error)
-	// Remove a trading pair.
+	// Removes a trading pair from the list of currently supported trading pair. This call will
+	// effectively cancel any standing orders for that trading pair. Peers are informed when a pair
+	// is no longer supported so that they will know to stop sending orders for it.
 	RemovePair(context.Context, *RemovePairRequest) (*RemovePairResponse, error)
-	// Begin shutting down xud.
+	// Begin gracefully shutting down xud.
 	Shutdown(context.Context, *ShutdownRequest) (*ShutdownResponse, error)
 	// Subscribes to orders being added to the order book. This call, together with SubscribeRemovedOrders,
 	// allows the client to maintain an up-to-date view of the order book. For example, an exchange that
@@ -1965,10 +2263,11 @@ type XudServer interface {
 	// to them would subscribe to this streaming call to be alerted when part or all of an existing order
 	// is no longer available for trading.
 	SubscribeRemovedOrders(*SubscribeRemovedOrdersRequest, Xud_SubscribeRemovedOrdersServer) error
-	// Subscribes to completed swaps that are initiated by a remote peer. This call allows the client to
-	// get real-time notifications when its orders are filled by a remote taker. It can be used for
-	// tracking order executions, updating balances, and informing a trader when one of their orders
-	// is settled through Exchange Union network.
+	// Subscribes to completed swaps. By default, only swaps that are initiated by a remote peer are
+	// transmitted unless a flag is set to include swaps initiated by the local node. This call allows
+	// the client to get real-time notifications when its orders are filled by a peer. It can be used
+	// for tracking order executions, updating balances, and informing a trader when one of their orders
+	// is settled through the Exchange Union network.
 	SubscribeSwaps(*SubscribeSwapsRequest, Xud_SubscribeSwapsServer) error
 }
 
@@ -2120,20 +2419,38 @@ func _Xud_GetInfo_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Xud_GetOrders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetOrdersRequest)
+func _Xud_GetNodeInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNodeInfoRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(XudServer).GetOrders(ctx, in)
+		return srv.(XudServer).GetNodeInfo(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/xudrpc.Xud/GetOrders",
+		FullMethod: "/xudrpc.Xud/GetNodeInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XudServer).GetOrders(ctx, req.(*GetOrdersRequest))
+		return srv.(XudServer).GetNodeInfo(ctx, req.(*GetNodeInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Xud_ListOrders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListOrdersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XudServer).ListOrders(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/xudrpc.Xud/ListOrders",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XudServer).ListOrders(ctx, req.(*ListOrdersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2227,6 +2544,24 @@ func _Xud_PlaceOrderSync_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(XudServer).PlaceOrderSync(ctx, req.(*PlaceOrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Xud_ExecuteSwap_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecuteSwapRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XudServer).ExecuteSwap(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/xudrpc.Xud/ExecuteSwap",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XudServer).ExecuteSwap(ctx, req.(*ExecuteSwapRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2336,7 +2671,7 @@ func _Xud_SubscribeSwaps_Handler(srv interface{}, stream grpc.ServerStream) erro
 }
 
 type Xud_SubscribeSwapsServer interface {
-	Send(*SwapResult) error
+	Send(*SwapSuccess) error
 	grpc.ServerStream
 }
 
@@ -2344,7 +2679,7 @@ type xudSubscribeSwapsServer struct {
 	grpc.ServerStream
 }
 
-func (x *xudSubscribeSwapsServer) Send(m *SwapResult) error {
+func (x *xudSubscribeSwapsServer) Send(m *SwapSuccess) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -2385,8 +2720,12 @@ var _Xud_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Xud_GetInfo_Handler,
 		},
 		{
-			MethodName: "GetOrders",
-			Handler:    _Xud_GetOrders_Handler,
+			MethodName: "GetNodeInfo",
+			Handler:    _Xud_GetNodeInfo_Handler,
+		},
+		{
+			MethodName: "ListOrders",
+			Handler:    _Xud_ListOrders_Handler,
 		},
 		{
 			MethodName: "ListCurrencies",
@@ -2403,6 +2742,10 @@ var _Xud_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PlaceOrderSync",
 			Handler:    _Xud_PlaceOrderSync_Handler,
+		},
+		{
+			MethodName: "ExecuteSwap",
+			Handler:    _Xud_ExecuteSwap_Handler,
 		},
 		{
 			MethodName: "RemoveCurrency",
@@ -2445,140 +2788,156 @@ var _Xud_serviceDesc = grpc.ServiceDesc{
 func init() { proto.RegisterFile("xudrpc.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 2147 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x59, 0x4b, 0x73, 0x1c, 0x49,
-	0x11, 0x56, 0xcf, 0x7b, 0x72, 0xa4, 0xd1, 0x4c, 0xe9, 0x35, 0x1e, 0x3f, 0x30, 0x85, 0x0d, 0xc2,
-	0xeb, 0x95, 0x8c, 0x1c, 0xb1, 0xde, 0xdd, 0x08, 0x0e, 0x92, 0x56, 0xd8, 0x06, 0xb1, 0x38, 0x4a,
-	0xbb, 0x04, 0x04, 0xb0, 0x1d, 0x3d, 0xdd, 0xb5, 0x52, 0x87, 0x5b, 0xd5, 0xe3, 0x7e, 0x48, 0xab,
-	0x2b, 0x7f, 0x81, 0x0b, 0x17, 0x22, 0x80, 0xff, 0xc0, 0x9d, 0x13, 0x07, 0x82, 0xe0, 0xc2, 0x95,
-	0x23, 0x27, 0x7e, 0x05, 0x51, 0xaf, 0xee, 0xaa, 0x9e, 0x1e, 0xe3, 0x8d, 0xd8, 0xdb, 0x54, 0x56,
-	0xd6, 0x97, 0x59, 0x59, 0xf9, 0xec, 0x81, 0xd5, 0xaf, 0xf2, 0x20, 0x99, 0xfb, 0x7b, 0xf3, 0x24,
-	0xce, 0x62, 0xd4, 0x91, 0xab, 0xe9, 0x9d, 0xf3, 0x38, 0x3e, 0x8f, 0xe8, 0xbe, 0x37, 0x0f, 0xf7,
-	0x3d, 0xc6, 0xe2, 0xcc, 0xcb, 0xc2, 0x98, 0xa5, 0x92, 0x0b, 0xff, 0xd7, 0x01, 0x74, 0x18, 0x04,
-	0xc7, 0x79, 0x92, 0x50, 0xe6, 0xdf, 0x10, 0xfa, 0x26, 0xa7, 0x69, 0x86, 0xa6, 0xd0, 0xf3, 0x15,
-	0x69, 0xe2, 0xdc, 0x77, 0x76, 0xfb, 0xa4, 0x58, 0xa3, 0xe7, 0x30, 0x48, 0xaf, 0xbd, 0xb9, 0xeb,
-	0x47, 0x21, 0x65, 0xd9, 0xa4, 0x71, 0xdf, 0xd9, 0x1d, 0x1e, 0x3c, 0xdc, 0x53, 0xc2, 0x17, 0xc1,
-	0xf6, 0xce, 0xae, 0xbd, 0xf9, 0xb1, 0x60, 0x26, 0xe6, 0x49, 0xf4, 0x00, 0xd6, 0xb2, 0xf8, 0x35,
-	0x65, 0xae, 0x17, 0x04, 0x09, 0x4d, 0xd3, 0x49, 0x53, 0x48, 0xb2, 0x89, 0xe8, 0xbb, 0x30, 0x0c,
-	0xa8, 0x1f, 0x5e, 0x7a, 0x91, 0x3b, 0x8f, 0x3c, 0x9f, 0xa6, 0x93, 0xd6, 0x7d, 0x67, 0x77, 0x8d,
-	0x54, 0xa8, 0xf8, 0xdb, 0x00, 0xa5, 0x20, 0xd4, 0x85, 0xe6, 0xe9, 0xa7, 0x9f, 0x8c, 0x56, 0x10,
-	0x40, 0x87, 0x1c, 0xbe, 0xfc, 0xe4, 0xe4, 0xd3, 0x91, 0x83, 0xb7, 0x60, 0xc3, 0x52, 0x2f, 0x9d,
-	0xc7, 0x2c, 0xa5, 0xf8, 0x0b, 0x18, 0x1e, 0x06, 0xc1, 0x2b, 0x2f, 0x4c, 0xf4, 0xf5, 0x1f, 0xc0,
-	0xda, 0xcc, 0x4b, 0xa9, 0x5b, 0xb1, 0x81, 0x4d, 0xe4, 0x9a, 0xbd, 0xc9, 0xe3, 0xcc, 0x60, 0x6b,
-	0x08, 0xb6, 0x0a, 0x15, 0x8f, 0x61, 0xbd, 0xc0, 0x57, 0x22, 0x9f, 0x00, 0x22, 0xf4, 0x32, 0xbe,
-	0xa2, 0x3f, 0x4b, 0x02, 0x9a, 0x18, 0x56, 0x8f, 0xf9, 0xda, 0x0d, 0x03, 0x6d, 0x75, 0xbd, 0xe6,
-	0xba, 0x5b, 0x27, 0x4a, 0xdd, 0x8f, 0x2f, 0x3c, 0xc6, 0x68, 0x74, 0xe4, 0x45, 0x1e, 0xf3, 0x29,
-	0x9a, 0x40, 0x77, 0x26, 0x7f, 0x0a, 0x8c, 0x26, 0xd1, 0x4b, 0x74, 0x00, 0x9b, 0x73, 0xca, 0x82,
-	0x90, 0x9d, 0xbb, 0xf1, 0x9c, 0x32, 0x57, 0xb3, 0x35, 0x04, 0x5b, 0xed, 0x1e, 0x7e, 0x0a, 0x5b,
-	0x36, 0xfe, 0x3b, 0x78, 0x08, 0xfe, 0x8b, 0x03, 0xdb, 0xd5, 0x53, 0x52, 0x5f, 0xf4, 0x23, 0xe8,
-	0x29, 0xe8, 0x74, 0xe2, 0xdc, 0x6f, 0xee, 0x0e, 0x0e, 0x1e, 0x6b, 0xcf, 0xa9, 0x3f, 0xb1, 0xa7,
-	0xd6, 0xe9, 0x09, 0xcb, 0x92, 0x1b, 0xd2, 0x11, 0x06, 0x49, 0xa7, 0x67, 0xb0, 0x66, 0x6d, 0xa0,
-	0x11, 0x34, 0x5f, 0x53, 0xad, 0x0a, 0xff, 0x89, 0x1e, 0x43, 0xfb, 0xca, 0x8b, 0x72, 0x79, 0xbf,
-	0xc1, 0xc1, 0xf6, 0x12, 0x39, 0x92, 0xe9, 0xe3, 0xc6, 0x87, 0x0e, 0x7e, 0x0c, 0xc3, 0xe3, 0x98,
-	0x31, 0xea, 0x67, 0xc6, 0x2d, 0x59, 0x1c, 0x50, 0x37, 0x4f, 0x42, 0x7d, 0x4b, 0xbd, 0xe6, 0xcf,
-	0x5a, 0x70, 0x17, 0xcf, 0x0a, 0x47, 0x1e, 0xd3, 0x87, 0x31, 0xac, 0x0a, 0xe6, 0x79, 0x3e, 0x73,
-	0x4b, 0xdd, 0x2c, 0x1a, 0x5e, 0x83, 0x81, 0x38, 0xa1, 0x00, 0x46, 0x30, 0x7c, 0x4e, 0xb3, 0x97,
-	0xec, 0xcb, 0x58, 0x81, 0xe0, 0xbf, 0x37, 0x60, 0xbd, 0x20, 0x29, 0x23, 0x4e, 0xa0, 0x7b, 0x45,
-	0x93, 0x34, 0x8c, 0x99, 0xc2, 0xd4, 0xcb, 0x05, 0x91, 0x8d, 0x45, 0x91, 0x08, 0x41, 0x2b, 0x4f,
-	0x42, 0x1e, 0x6d, 0xcd, 0xdd, 0x3e, 0x11, 0xbf, 0xd1, 0x1d, 0xe8, 0xb3, 0xfc, 0xd2, 0x9d, 0x53,
-	0x9a, 0xc8, 0xf8, 0x6a, 0x93, 0x92, 0x50, 0xec, 0x7a, 0x61, 0x92, 0x4e, 0xda, 0xc6, 0x2e, 0x27,
-	0xa0, 0xf7, 0x40, 0x3d, 0xca, 0xa4, 0x23, 0x0c, 0xbd, 0xa1, 0x0d, 0x2d, 0x3c, 0x35, 0x3d, 0x8e,
-	0x73, 0x96, 0xe9, 0x77, 0x43, 0xdf, 0x83, 0x4e, 0xc4, 0x82, 0x59, 0xe6, 0x4f, 0xba, 0x82, 0x79,
-	0x5d, 0x33, 0x9f, 0xb2, 0x40, 0xdc, 0x51, 0x6d, 0x2b, 0xc6, 0x28, 0xf3, 0x27, 0xbd, 0xe5, 0x8c,
-	0x51, 0xe6, 0xa3, 0x47, 0xd0, 0x49, 0xbc, 0x30, 0xa0, 0x6c, 0xd2, 0x17, 0x8c, 0x48, 0x33, 0x12,
-	0x41, 0x95, 0xbc, 0x92, 0x03, 0xff, 0x1a, 0x46, 0xcf, 0x69, 0x26, 0xf5, 0xd2, 0xaf, 0x34, 0x81,
-	0x2e, 0xbf, 0x47, 0x19, 0x73, 0x7a, 0x89, 0xf6, 0x00, 0x85, 0xcc, 0x8f, 0xf2, 0x80, 0xba, 0xf1,
-	0x35, 0x73, 0xd5, 0x25, 0xb9, 0x49, 0x7b, 0xa4, 0x66, 0x07, 0xff, 0xc1, 0x81, 0xb1, 0x01, 0xaf,
-	0x1e, 0xeb, 0x87, 0x85, 0x79, 0xa4, 0xbf, 0x17, 0x99, 0x72, 0x81, 0x55, 0x19, 0xcc, 0x76, 0xf4,
-	0x97, 0x30, 0x30, 0xc8, 0x35, 0x6e, 0xfe, 0xc0, 0x76, 0xf3, 0xa1, 0x6d, 0x7d, 0xd3, 0xbd, 0x77,
-	0x60, 0xeb, 0x34, 0x4c, 0x33, 0x95, 0xff, 0x42, 0xaa, 0x4d, 0x80, 0x3f, 0x84, 0xed, 0xea, 0x86,
-	0x52, 0xfe, 0x1e, 0x80, 0x5f, 0x50, 0xc5, 0x05, 0xfa, 0xc4, 0xa0, 0x60, 0x04, 0x23, 0x7e, 0x92,
-	0xe7, 0xb6, 0x02, 0xed, 0xfb, 0x30, 0x36, 0x68, 0x0a, 0x68, 0x13, 0xda, 0xd2, 0x7d, 0x24, 0x86,
-	0x5c, 0x14, 0xc7, 0x69, 0xf9, 0x1e, 0xf8, 0x99, 0x3a, 0x4e, 0x4d, 0x23, 0x62, 0x68, 0x4b, 0xdf,
-	0x94, 0x36, 0x5c, 0xd5, 0x97, 0xe4, 0x5c, 0x44, 0x6e, 0xe1, 0x5f, 0xc1, 0xe0, 0x94, 0x05, 0x2a,
-	0xba, 0x53, 0xb4, 0x0d, 0x1d, 0xcf, 0xcf, 0xc2, 0x2b, 0x99, 0x06, 0xdb, 0x44, 0xad, 0x78, 0x48,
-	0x87, 0x4c, 0xed, 0x34, 0xc4, 0x4e, 0xb1, 0x16, 0xbe, 0x20, 0xb3, 0xa0, 0xa8, 0x45, 0x6d, 0xa2,
-	0x97, 0xf8, 0x9f, 0x0e, 0x74, 0x95, 0xe7, 0xf1, 0xbb, 0xd0, 0x24, 0x89, 0x13, 0xf5, 0x0a, 0x72,
-	0x81, 0xf6, 0xa1, 0xe7, 0x2b, 0xd9, 0xea, 0x29, 0x36, 0x0c, 0x97, 0xd5, 0x6a, 0x91, 0x82, 0x89,
-	0x2b, 0xe8, 0x5f, 0x78, 0x21, 0xd3, 0x91, 0xa8, 0x56, 0xe8, 0x3e, 0x0c, 0x66, 0x51, 0xec, 0xbf,
-	0xbe, 0xa0, 0xe1, 0xf9, 0x45, 0xa6, 0xa2, 0xd1, 0x24, 0x15, 0x11, 0xdc, 0x36, 0x22, 0xd8, 0xc8,
-	0x09, 0x1d, 0x3b, 0x27, 0x6c, 0x42, 0xdb, 0x8b, 0x42, 0x2f, 0x15, 0x11, 0xd7, 0x27, 0x72, 0x81,
-	0xff, 0xd4, 0x80, 0xb6, 0x70, 0x11, 0xf1, 0x34, 0x49, 0xa8, 0xca, 0x85, 0x43, 0xe4, 0x82, 0x9b,
-	0xe9, 0x4d, 0xee, 0xb1, 0x2c, 0xcc, 0x64, 0x16, 0x71, 0x48, 0xb1, 0x36, 0x43, 0xa6, 0x69, 0x87,
-	0xcc, 0x10, 0x1a, 0x61, 0x20, 0x54, 0xee, 0x93, 0x46, 0x18, 0xa0, 0x07, 0xb0, 0xca, 0x1f, 0xa7,
-	0xc8, 0x47, 0x3c, 0x79, 0xf4, 0x5f, 0xac, 0x10, 0x8b, 0x8a, 0xee, 0x40, 0x2f, 0x8a, 0x7d, 0x2f,
-	0xe2, 0x80, 0x1d, 0xc5, 0x51, 0x50, 0x84, 0x0f, 0x26, 0xd4, 0xcb, 0x68, 0xe0, 0x7a, 0x99, 0xb8,
-	0x44, 0x93, 0x18, 0x14, 0xf4, 0x10, 0x5a, 0x69, 0x18, 0x50, 0x91, 0x27, 0x86, 0x07, 0x63, 0xcb,
-	0xff, 0xcf, 0xc2, 0x80, 0x12, 0xb1, 0xcd, 0x53, 0x63, 0x98, 0x96, 0xe1, 0x2a, 0xb2, 0x45, 0x8f,
-	0x58, 0xb4, 0xa3, 0x35, 0x18, 0xc8, 0x85, 0x48, 0x7c, 0xf8, 0x8f, 0x0e, 0xac, 0xaa, 0x72, 0x7b,
-	0x19, 0x5f, 0x79, 0x91, 0x65, 0x14, 0x67, 0xb9, 0x51, 0x1a, 0xb6, 0x51, 0xcc, 0xb2, 0xde, 0xb4,
-	0xcb, 0x3a, 0xdf, 0x2b, 0xae, 0x2e, 0xcd, 0x56, 0x5e, 0xbc, 0xaa, 0x71, 0x7b, 0x51, 0x63, 0x7c,
-	0x01, 0x1d, 0x19, 0xe8, 0xe8, 0x7d, 0x80, 0x59, 0x7e, 0xe3, 0x5a, 0xb9, 0x66, 0xcd, 0x32, 0x06,
-	0x31, 0x18, 0xd0, 0x3e, 0x0c, 0x52, 0x1a, 0x45, 0x65, 0x56, 0xab, 0xe1, 0x37, 0x39, 0xf0, 0x53,
-	0x9d, 0x88, 0x44, 0x42, 0xe7, 0x3e, 0xc8, 0x6d, 0xa4, 0x82, 0x4b, 0xfc, 0xe6, 0xc9, 0x29, 0xbe,
-	0x66, 0x2a, 0xaa, 0xf8, 0x4f, 0xfc, 0xfb, 0x06, 0xb4, 0x78, 0x8c, 0x72, 0xeb, 0xe8, 0x2e, 0x4f,
-	0x65, 0x59, 0xdd, 0xdf, 0xbd, 0x4b, 0xc9, 0xda, 0x85, 0xf5, 0x88, 0x05, 0xee, 0x2c, 0xf3, 0x0b,
-	0x36, 0x69, 0xc8, 0x2a, 0x59, 0x73, 0x46, 0x06, 0x67, 0xab, 0xe4, 0x34, 0xc8, 0x5c, 0xa3, 0x90,
-	0xcd, 0xe2, 0x9c, 0x05, 0xca, 0xb0, 0x7a, 0x59, 0xe6, 0xaa, 0x8e, 0x91, 0xab, 0x78, 0x58, 0x7e,
-	0x95, 0x07, 0xae, 0x0e, 0x32, 0x19, 0x4c, 0x26, 0x09, 0x3d, 0x86, 0x71, 0x4a, 0xfd, 0x98, 0x05,
-	0xa9, 0xeb, 0xcb, 0xc6, 0x80, 0x06, 0xc2, 0x2b, 0xdb, 0x64, 0x71, 0x03, 0xff, 0xd9, 0x81, 0xf1,
-	0x2b, 0xde, 0xba, 0x5a, 0x2d, 0xe0, 0x37, 0x19, 0x8c, 0xa6, 0xdf, 0xb5, 0x2a, 0x7e, 0xa7, 0x83,
-	0xa6, 0xfd, 0xd6, 0xa0, 0xc1, 0x7f, 0x75, 0x00, 0x99, 0x4a, 0xaa, 0x74, 0xfc, 0x11, 0x8c, 0x42,
-	0x96, 0xd1, 0x84, 0x79, 0x91, 0x7b, 0xe9, 0x65, 0xfe, 0x05, 0x5d, 0xe2, 0x71, 0x0b, 0x6c, 0xe8,
-	0x03, 0x58, 0x15, 0x33, 0x40, 0x42, 0xd3, 0x3c, 0xca, 0xb4, 0xe3, 0x15, 0x45, 0x9b, 0xb7, 0xf0,
-	0x44, 0x6c, 0x11, 0x8b, 0x0f, 0x3d, 0x83, 0xf5, 0x84, 0x5e, 0x7a, 0x21, 0x13, 0x2d, 0xaa, 0x88,
-	0x87, 0xa6, 0xc8, 0xb2, 0x15, 0x89, 0x55, 0x2e, 0xfc, 0x37, 0x07, 0xd6, 0xcb, 0x2b, 0x9c, 0x5c,
-	0xf1, 0xe9, 0xe0, 0x19, 0x0c, 0x6d, 0xc5, 0x84, 0xb9, 0xab, 0x58, 0x2f, 0x56, 0x48, 0x85, 0x0d,
-	0x7d, 0xa0, 0x66, 0x1f, 0xa9, 0x95, 0xca, 0xf3, 0x35, 0xca, 0xbf, 0x58, 0x21, 0x26, 0x23, 0xfa,
-	0xe8, 0xdd, 0xb4, 0x7f, 0xb1, 0xb2, 0xa0, 0xff, 0x51, 0x17, 0xda, 0x94, 0x2b, 0x8d, 0x13, 0x80,
-	0xb2, 0xa5, 0x59, 0x52, 0x84, 0x8c, 0x30, 0x6b, 0xd8, 0x61, 0x36, 0x35, 0xca, 0x93, 0xac, 0x6d,
-	0x65, 0x25, 0x32, 0x6a, 0x47, 0xcb, 0xaa, 0x1d, 0xbc, 0xfd, 0x97, 0x53, 0xc7, 0xd7, 0x18, 0x10,
-	0xf1, 0x04, 0xb6, 0xab, 0x87, 0x54, 0x7b, 0xfb, 0x3e, 0x8c, 0xe5, 0x8e, 0x39, 0x6c, 0x2d, 0x6d,
-	0xc0, 0xf0, 0xa6, 0x9e, 0x92, 0xac, 0xd9, 0x69, 0x0c, 0xeb, 0x67, 0x17, 0x79, 0x16, 0xc4, 0xd7,
-	0xba, 0xd3, 0xe6, 0x7d, 0x44, 0x49, 0x52, 0x6c, 0x77, 0xe1, 0xf6, 0x59, 0x3e, 0x4b, 0xfd, 0x24,
-	0x9c, 0xd1, 0xc3, 0x20, 0xa0, 0x81, 0xd5, 0xf6, 0xe1, 0x6f, 0xc1, 0xdd, 0x62, 0x5b, 0x0a, 0xa9,
-	0x30, 0xec, 0xc0, 0x56, 0xc1, 0xc0, 0x1f, 0xb6, 0xd8, 0xf8, 0x47, 0x43, 0x4e, 0x9a, 0xf2, 0xa5,
-	0xd1, 0xad, 0x85, 0xa1, 0xad, 0x2b, 0xd6, 0x2f, 0xed, 0xe4, 0xde, 0xa8, 0x24, 0xf7, 0xb7, 0x86,
-	0x6d, 0x11, 0xec, 0xad, 0x4a, 0xb0, 0x6f, 0x43, 0x27, 0x71, 0x2f, 0xbc, 0xf4, 0x42, 0x56, 0x52,
-	0xa2, 0x56, 0x3c, 0xed, 0x79, 0x97, 0x3c, 0x2f, 0xbb, 0x09, 0xf5, 0x69, 0x78, 0x45, 0x65, 0x21,
-	0x6d, 0x92, 0x2a, 0x99, 0xa7, 0x31, 0x45, 0x4a, 0xf9, 0xf4, 0x2e, 0xcb, 0xa9, 0x49, 0xe2, 0x09,
-	0xd9, 0xaa, 0xd9, 0x3d, 0x99, 0x90, 0xad, 0x8a, 0xfd, 0x1e, 0xb4, 0x92, 0x38, 0xa2, 0xa2, 0x88,
-	0x0e, 0x0f, 0x76, 0x16, 0x03, 0x60, 0x8f, 0xc4, 0x11, 0x25, 0x82, 0x09, 0xdf, 0x81, 0x16, 0x5f,
-	0xa1, 0x3e, 0xb4, 0x3f, 0x3b, 0xfc, 0xc9, 0x09, 0x19, 0xad, 0xf0, 0x9f, 0x3f, 0x15, 0x3f, 0x1d,
-	0xfc, 0x0a, 0x56, 0x3f, 0x67, 0xb3, 0xaf, 0x35, 0x35, 0xf1, 0x81, 0x24, 0xa1, 0x2a, 0x95, 0xaa,
-	0x86, 0xbc, 0x24, 0xe0, 0x75, 0x58, 0x53, 0x88, 0xd2, 0x15, 0x1e, 0xdd, 0x83, 0x7e, 0x91, 0xd8,
-	0x50, 0x17, 0x9a, 0x47, 0x9f, 0xff, 0x72, 0xb4, 0x82, 0x7a, 0xd0, 0x3a, 0x3b, 0x39, 0x3d, 0x1d,
-	0x39, 0x07, 0xff, 0x1e, 0x42, 0xf3, 0x17, 0x79, 0x80, 0x66, 0x30, 0x30, 0xbe, 0x0f, 0xa0, 0xe9,
-	0xf2, 0x6f, 0x1a, 0xd3, 0xdb, 0xb5, 0x7b, 0xca, 0xf5, 0xa6, 0xbf, 0xfd, 0xd7, 0x7f, 0x7e, 0xd7,
-	0xd8, 0xc4, 0xeb, 0xfb, 0x57, 0x3f, 0xd8, 0xf7, 0x82, 0x40, 0x47, 0xc6, 0xc7, 0xce, 0x23, 0x44,
-	0xa0, 0xab, 0x3e, 0x06, 0xa0, 0x6d, 0x03, 0xc3, 0x08, 0x88, 0xe9, 0xce, 0x02, 0x5d, 0xe1, 0x6e,
-	0x0b, 0xdc, 0x11, 0x1e, 0x28, 0x5c, 0xee, 0x31, 0x1c, 0x73, 0x06, 0x03, 0xe3, 0xdb, 0x40, 0xa9,
-	0xf7, 0xe2, 0x27, 0x86, 0x52, 0xef, 0xba, 0x8f, 0x09, 0x96, 0xde, 0x89, 0x60, 0x10, 0xae, 0xcc,
-	0x65, 0xbc, 0x5e, 0xf8, 0xd0, 0x70, 0x77, 0xd9, 0xe0, 0x2e, 0x25, 0xdd, 0x7b, 0xfb, 0x5c, 0xaf,
-	0x85, 0x21, 0xc4, 0x85, 0xa9, 0x54, 0xa4, 0xbf, 0x54, 0x10, 0xe8, 0xaa, 0xd1, 0xba, 0x34, 0x92,
-	0x3d, 0x99, 0x97, 0x46, 0xaa, 0xce, 0xe0, 0x96, 0x91, 0x94, 0x4b, 0xf0, 0x0b, 0x1c, 0x41, 0xf3,
-	0xc8, 0x63, 0xa8, 0x48, 0xd6, 0xe5, 0xa0, 0x3e, 0xdd, 0xb0, 0x68, 0x0a, 0x07, 0x09, 0x9c, 0x55,
-	0xdc, 0xe5, 0x38, 0x33, 0x8f, 0x71, 0x8c, 0x1f, 0x43, 0x5b, 0x78, 0x16, 0xda, 0xd4, 0x27, 0x4c,
-	0xd7, 0x9d, 0x6e, 0x55, 0xa8, 0x0a, 0x69, 0x53, 0x20, 0x0d, 0x71, 0x9f, 0x23, 0xe5, 0x4c, 0x61,
-	0x9d, 0x42, 0x57, 0xcd, 0xf5, 0xe5, 0x1d, 0xed, 0xd9, 0xbf, 0xbc, 0x63, 0xe5, 0x03, 0x00, 0x1e,
-	0x09, 0x44, 0x40, 0x3d, 0x8e, 0x18, 0x72, 0x88, 0xcf, 0xa0, 0x5f, 0xcc, 0x93, 0x68, 0x52, 0x33,
-	0x62, 0x4a, 0xc4, 0x5b, 0x4b, 0x87, 0x4f, 0x7d, 0x5f, 0x04, 0x1c, 0x53, 0x35, 0x89, 0xe7, 0x30,
-	0xb4, 0x07, 0xc3, 0xf2, 0xd1, 0x6b, 0x27, 0xc9, 0xf2, 0xd1, 0xeb, 0xe7, 0x49, 0xfd, 0x38, 0x68,
-	0x28, 0x1e, 0xa7, 0x84, 0x3d, 0x83, 0x7e, 0x31, 0x33, 0x96, 0xea, 0x57, 0x47, 0xcb, 0x52, 0xfd,
-	0x85, 0x01, 0x13, 0x8f, 0x05, 0xf2, 0x00, 0x09, 0x23, 0xcb, 0x8e, 0x4d, 0x83, 0x52, 0xba, 0x00,
-	0x4a, 0xe9, 0x32, 0x50, 0x73, 0xec, 0xac, 0x80, 0x0a, 0x9c, 0xdf, 0x00, 0x94, 0xdd, 0x04, 0x2a,
-	0xce, 0x2e, 0x74, 0x72, 0xe5, 0xe3, 0x55, 0x9a, 0x0f, 0x7c, 0x4b, 0x80, 0x6e, 0x60, 0x61, 0x03,
-	0xf1, 0xf1, 0x52, 0x07, 0xd9, 0x13, 0x07, 0x7d, 0x09, 0xc3, 0x92, 0xff, 0xec, 0x86, 0xf9, 0x6f,
-	0x13, 0x31, 0xad, 0xdb, 0xd2, 0xe5, 0x4f, 0x48, 0xd9, 0xc1, 0xc8, 0x96, 0x92, 0xde, 0x30, 0x9f,
-	0x7b, 0x1f, 0x83, 0xa1, 0x5d, 0xa3, 0xcb, 0x97, 0xad, 0x2d, 0xf8, 0xe5, 0xcb, 0x2e, 0x29, 0xed,
-	0x96, 0x3c, 0x99, 0x3b, 0xcc, 0xb4, 0xf7, 0x05, 0x40, 0x59, 0xca, 0xcb, 0x3b, 0x2d, 0x74, 0x03,
-	0xd3, 0x69, 0xdd, 0x96, 0x92, 0x61, 0x59, 0x4e, 0xca, 0xd0, 0x29, 0xf0, 0xe7, 0xd0, 0xd3, 0x1d,
-	0x00, 0x2a, 0xcb, 0x91, 0xdd, 0x26, 0x4c, 0x27, 0x8b, 0x1b, 0x0a, 0x79, 0x47, 0x20, 0x8f, 0xf1,
-	0x2a, 0x47, 0x4e, 0xd5, 0x2e, 0xc7, 0x0d, 0x61, 0xb3, 0xae, 0x8b, 0x40, 0xdf, 0x29, 0xa0, 0x96,
-	0xf7, 0x18, 0x53, 0xbb, 0xb9, 0xc3, 0xb7, 0x85, 0x90, 0x2d, 0xb4, 0x21, 0x84, 0xe8, 0x73, 0xf2,
-	0x59, 0x9e, 0x38, 0x28, 0x83, 0xed, 0xfa, 0x8e, 0x04, 0x3d, 0x5c, 0x10, 0x56, 0xd7, 0xb1, 0x4c,
-	0x37, 0xed, 0x4e, 0x58, 0xce, 0xac, 0xff, 0x4f, 0xaa, 0x07, 0x43, 0xbb, 0xcd, 0x29, 0x1d, 0xa1,
-	0xb6, 0xfd, 0x99, 0xd6, 0x74, 0xbb, 0x76, 0x2e, 0x2f, 0x64, 0xf0, 0x06, 0x38, 0x7d, 0xe2, 0xcc,
-	0x3a, 0xe2, 0xaf, 0x86, 0xa7, 0xff, 0x0b, 0x00, 0x00, 0xff, 0xff, 0xdd, 0xde, 0xa5, 0xa4, 0xa0,
-	0x18, 0x00, 0x00,
+	// 2403 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x59, 0x4b, 0x6f, 0xdc, 0xc8,
+	0x11, 0x16, 0xe7, 0x3d, 0x35, 0xd2, 0x68, 0xd4, 0x92, 0xe5, 0x31, 0xd7, 0x76, 0x94, 0x5e, 0x7b,
+	0xa3, 0x38, 0x5e, 0xc9, 0x91, 0x11, 0xf8, 0x11, 0x24, 0x80, 0xe5, 0xd5, 0xda, 0x4e, 0x14, 0xc7,
+	0xa0, 0xb2, 0x79, 0xef, 0x12, 0x1c, 0xb2, 0xed, 0x21, 0x4c, 0x35, 0xc7, 0x7c, 0xc8, 0x16, 0x72,
+	0x5b, 0x20, 0x97, 0x5c, 0x73, 0xc9, 0x2d, 0xc1, 0x1e, 0xf2, 0x0f, 0xf6, 0x27, 0xe4, 0x92, 0x43,
+	0x2e, 0xf9, 0x0b, 0x39, 0xe5, 0x57, 0x04, 0xfd, 0x22, 0xbb, 0x49, 0x8e, 0xe0, 0x05, 0x72, 0x9b,
+	0xae, 0x2e, 0x56, 0x55, 0x57, 0x57, 0x7d, 0x55, 0x5d, 0x03, 0xab, 0xef, 0xf2, 0x20, 0x59, 0xf8,
+	0x7b, 0x8b, 0x24, 0xce, 0x62, 0xd4, 0x13, 0x2b, 0xfb, 0xea, 0xab, 0x38, 0x7e, 0x15, 0x91, 0x7d,
+	0x6f, 0x11, 0xee, 0x7b, 0x94, 0xc6, 0x99, 0x97, 0x85, 0x31, 0x4d, 0x05, 0x17, 0xfe, 0xaf, 0x05,
+	0xe8, 0x51, 0x10, 0x3c, 0xce, 0x93, 0x84, 0x50, 0xff, 0xdc, 0x21, 0x6f, 0x72, 0x92, 0x66, 0xc8,
+	0x86, 0x81, 0x2f, 0x49, 0x53, 0x6b, 0xc7, 0xda, 0x1d, 0x3a, 0xc5, 0x1a, 0x3d, 0x81, 0x51, 0xfa,
+	0xd6, 0x5b, 0xb8, 0x7e, 0x14, 0x12, 0x9a, 0x4d, 0x5b, 0x3b, 0xd6, 0xee, 0xf8, 0xe0, 0xe6, 0x9e,
+	0x54, 0x5e, 0x17, 0xb6, 0x77, 0xf2, 0xd6, 0x5b, 0x3c, 0xe6, 0xcc, 0x8e, 0xfe, 0x25, 0xba, 0x01,
+	0x6b, 0x59, 0xfc, 0x9a, 0x50, 0xd7, 0x0b, 0x82, 0x84, 0xa4, 0xe9, 0xb4, 0xcd, 0x35, 0x99, 0x44,
+	0xf4, 0x11, 0x8c, 0x03, 0xe2, 0x87, 0xa7, 0x5e, 0xe4, 0x2e, 0x22, 0xcf, 0x27, 0xe9, 0xb4, 0xb3,
+	0x63, 0xed, 0xae, 0x39, 0x15, 0x2a, 0xfe, 0x36, 0x40, 0xa9, 0x08, 0xf5, 0xa1, 0x7d, 0xfc, 0xfc,
+	0x93, 0xc9, 0x0a, 0x02, 0xe8, 0x39, 0x8f, 0x9e, 0x7d, 0x72, 0xf4, 0x7c, 0x62, 0xe1, 0x4b, 0xb0,
+	0x69, 0x98, 0x97, 0x2e, 0x62, 0x9a, 0x12, 0xfc, 0x05, 0x8c, 0x1f, 0x05, 0xc1, 0x0b, 0x2f, 0x4c,
+	0xd4, 0xf1, 0x6f, 0xc0, 0xda, 0xcc, 0x4b, 0x89, 0x5b, 0xf1, 0x81, 0x49, 0x64, 0x96, 0xbd, 0xc9,
+	0xe3, 0x4c, 0x63, 0x6b, 0x71, 0xb6, 0x0a, 0x15, 0x6f, 0xc0, 0x7a, 0x21, 0x5f, 0xaa, 0xbc, 0x03,
+	0x70, 0xe8, 0x51, 0xa5, 0x0e, 0xc3, 0x2a, 0x8d, 0x03, 0xe2, 0x2e, 0xf2, 0x99, 0xfb, 0x9a, 0x28,
+	0x6d, 0x06, 0x0d, 0xaf, 0xc1, 0x88, 0x7f, 0x51, 0xda, 0xfc, 0x78, 0xee, 0x51, 0x4a, 0xa2, 0x43,
+	0x2f, 0xf2, 0xa8, 0x4f, 0xd0, 0x14, 0xfa, 0x33, 0xf1, 0x93, 0x7f, 0xdf, 0x76, 0xd4, 0x12, 0x1d,
+	0xc0, 0xd6, 0x82, 0xd0, 0x20, 0xa4, 0xaf, 0xdc, 0x78, 0x41, 0xa8, 0xab, 0xd8, 0x5a, 0x9c, 0xad,
+	0x71, 0x0f, 0xdf, 0x85, 0x4b, 0xa6, 0xfc, 0xf7, 0x88, 0x0c, 0xfc, 0xb5, 0x05, 0xdb, 0xd5, 0xaf,
+	0x84, 0xbd, 0xe8, 0x53, 0x18, 0x48, 0xd1, 0xe9, 0xd4, 0xda, 0x69, 0xef, 0x8e, 0x0e, 0x6e, 0xab,
+	0x88, 0x69, 0xfe, 0x62, 0x4f, 0xae, 0xd3, 0x23, 0x9a, 0x25, 0xe7, 0x4e, 0x2f, 0x4e, 0x02, 0x92,
+	0xa4, 0xf6, 0x09, 0xac, 0x19, 0x1b, 0x68, 0x02, 0xed, 0xd2, 0x65, 0xec, 0x27, 0xba, 0x0d, 0xdd,
+	0x33, 0x2f, 0xca, 0xc5, 0xf9, 0x46, 0x07, 0xdb, 0x4b, 0xf4, 0x08, 0xa6, 0x87, 0xad, 0xfb, 0x16,
+	0xbe, 0x0d, 0xe3, 0xc7, 0x31, 0xa5, 0xc4, 0xcf, 0xb4, 0x53, 0x72, 0xef, 0xe7, 0x49, 0xa8, 0x4e,
+	0xa9, 0xd6, 0xec, 0x3a, 0x0b, 0x6e, 0x79, 0x1b, 0x7f, 0xb2, 0x00, 0x1d, 0xbd, 0x23, 0x7e, 0x9e,
+	0x11, 0x16, 0x83, 0x9a, 0x14, 0x6e, 0xb6, 0x1b, 0x06, 0x4a, 0x8a, 0x5a, 0xb3, 0xeb, 0x5a, 0x78,
+	0x21, 0xdf, 0x12, 0x51, 0xa3, 0x96, 0x2c, 0x1a, 0x16, 0x84, 0x24, 0x45, 0x34, 0x88, 0xac, 0x30,
+	0x68, 0x4c, 0xf2, 0x9b, 0xdc, 0xa3, 0x59, 0x98, 0x9d, 0xf3, 0x74, 0xb0, 0x9c, 0x62, 0x8d, 0xbf,
+	0xb4, 0x60, 0xc4, 0xac, 0xf8, 0xd4, 0x0b, 0xa3, 0x3c, 0x21, 0xe8, 0x4a, 0xcd, 0x8a, 0x3e, 0x5f,
+	0x3f, 0xbb, 0xc8, 0x08, 0x5d, 0x41, 0xdb, 0x54, 0x50, 0x33, 0xb0, 0x53, 0x37, 0x10, 0x4f, 0x60,
+	0xfc, 0x84, 0x64, 0xcf, 0xe8, 0xcb, 0x58, 0x3a, 0x03, 0xff, 0xb3, 0x05, 0xeb, 0x05, 0x49, 0x46,
+	0xc5, 0x14, 0xfa, 0x67, 0x24, 0x49, 0xc3, 0x98, 0x2a, 0xcb, 0xe4, 0xb2, 0x96, 0x12, 0xad, 0x7a,
+	0x4a, 0x20, 0x04, 0x9d, 0x3c, 0x09, 0x19, 0x6c, 0xb4, 0x77, 0x87, 0x0e, 0xff, 0x8d, 0xae, 0xc2,
+	0x90, 0xe6, 0xa7, 0x2e, 0xb3, 0x45, 0x00, 0x45, 0xd7, 0x29, 0x09, 0xc5, 0xae, 0x17, 0x26, 0xe9,
+	0xb4, 0xab, 0xed, 0x32, 0x02, 0xfa, 0x1e, 0xc8, 0x28, 0x9b, 0xf6, 0x78, 0xe4, 0x6c, 0xaa, 0xc8,
+	0xf9, 0x39, 0xa7, 0x3e, 0x8e, 0x73, 0x9a, 0xa9, 0x40, 0x44, 0xdf, 0x81, 0x5e, 0x44, 0x83, 0x59,
+	0xe6, 0x4f, 0xfb, 0x9c, 0x79, 0x5d, 0x31, 0x1f, 0xd3, 0x80, 0x9f, 0x51, 0x6e, 0x4b, 0xc6, 0x28,
+	0xf3, 0xa7, 0x83, 0xe5, 0x8c, 0x51, 0xe6, 0xa3, 0x5b, 0xd0, 0x4b, 0xbc, 0x30, 0x20, 0x74, 0x3a,
+	0xe4, 0x8c, 0x48, 0x31, 0x3a, 0x9c, 0x2a, 0x78, 0x05, 0x07, 0xbe, 0x0f, 0xe8, 0x09, 0xc9, 0x9e,
+	0xc7, 0x01, 0xd1, 0x5c, 0xfc, 0x5e, 0x38, 0xe2, 0xc0, 0xa6, 0xf1, 0xa5, 0xbc, 0x89, 0x0f, 0x61,
+	0x3d, 0x21, 0x8b, 0x5c, 0x14, 0x87, 0x13, 0x3f, 0x4e, 0x04, 0x8a, 0x74, 0x1d, 0x28, 0xc9, 0x68,
+	0x1b, 0x7a, 0x33, 0x96, 0x43, 0x22, 0x5a, 0x06, 0x8e, 0x5c, 0xe1, 0xcf, 0x61, 0xe3, 0x38, 0x4c,
+	0x33, 0xe1, 0x26, 0x65, 0x8c, 0x16, 0x5b, 0x96, 0x19, 0x5b, 0x7b, 0x80, 0x42, 0xea, 0x47, 0x79,
+	0x40, 0xdc, 0xf8, 0x2d, 0x75, 0xa5, 0xcf, 0x85, 0xc8, 0x86, 0x1d, 0xfc, 0x57, 0x0b, 0x90, 0x2e,
+	0x5f, 0x9a, 0xfc, 0xe3, 0xe2, 0xba, 0x04, 0xa0, 0x7c, 0x54, 0x38, 0xb6, 0xc6, 0x2b, 0x6f, 0xd0,
+	0x84, 0x92, 0x67, 0x30, 0xd2, 0xc8, 0x0d, 0x40, 0x72, 0xc3, 0x04, 0x92, 0xb1, 0x19, 0x0e, 0x3a,
+	0x80, 0x5c, 0x86, 0x4b, 0x4c, 0xa9, 0xac, 0x2c, 0x21, 0x51, 0x4e, 0xc0, 0xf7, 0x61, 0xbb, 0xba,
+	0x21, 0xad, 0xbf, 0x0e, 0xe0, 0x17, 0x54, 0x7e, 0x82, 0xa1, 0xa3, 0x51, 0x30, 0x82, 0x09, 0xfb,
+	0x92, 0x55, 0x8d, 0x42, 0xda, 0x77, 0x85, 0x9f, 0x25, 0x4d, 0x0a, 0xda, 0x82, 0xae, 0x88, 0x67,
+	0x21, 0x43, 0x2c, 0x8a, 0xcf, 0x49, 0x79, 0x23, 0xf8, 0x9e, 0xfc, 0x9c, 0xe8, 0x5e, 0xc4, 0xd0,
+	0x15, 0xc9, 0x22, 0x9c, 0xb8, 0xaa, 0x0e, 0xc9, 0xb8, 0x1c, 0xb1, 0x85, 0x7f, 0x07, 0xa3, 0x63,
+	0x1a, 0x48, 0xfc, 0x4c, 0x59, 0x18, 0x78, 0x7e, 0x16, 0x9e, 0xa9, 0x10, 0x91, 0x2b, 0x86, 0x19,
+	0x21, 0x95, 0x3b, 0x2d, 0xbe, 0x53, 0xac, 0x79, 0x34, 0x88, 0x3a, 0xc3, 0xe1, 0xa4, 0xeb, 0xa8,
+	0x25, 0xfe, 0x97, 0x05, 0x7d, 0x99, 0x0a, 0xec, 0x2c, 0x24, 0x49, 0xe2, 0x44, 0xde, 0x82, 0x58,
+	0xa0, 0x7d, 0x18, 0xf8, 0x52, 0xb7, 0xbc, 0x8a, 0x4d, 0x2d, 0x87, 0x94, 0x59, 0x4e, 0xc1, 0xc4,
+	0x0c, 0xf4, 0xe7, 0x5e, 0x48, 0x15, 0x34, 0xc8, 0x15, 0xda, 0x81, 0xd1, 0x2c, 0x8a, 0xfd, 0xd7,
+	0x73, 0x12, 0xbe, 0x9a, 0x67, 0x12, 0x1e, 0x74, 0x52, 0x01, 0x29, 0x5d, 0x0d, 0x52, 0x34, 0x90,
+	0xea, 0x99, 0x20, 0xb5, 0x05, 0x5d, 0x2f, 0x0a, 0xbd, 0x94, 0x43, 0xc0, 0xd0, 0x11, 0x0b, 0xfc,
+	0x75, 0x0b, 0xba, 0x3c, 0x44, 0xf8, 0xd5, 0x24, 0xa1, 0x2c, 0xc8, 0x96, 0x23, 0x16, 0x06, 0xb4,
+	0xb6, 0x2a, 0xd0, 0xaa, 0x25, 0x4d, 0xdb, 0x4c, 0x9a, 0x31, 0xb4, 0xc2, 0x40, 0x42, 0x6d, 0x2b,
+	0x0c, 0xd0, 0x8d, 0x0a, 0x08, 0x33, 0x34, 0x1b, 0x3e, 0x5d, 0xa9, 0xd4, 0x89, 0xab, 0x30, 0x88,
+	0x62, 0xdf, 0x8b, 0x98, 0xc0, 0x9e, 0xe4, 0x28, 0x28, 0x3c, 0x06, 0x13, 0xe2, 0x65, 0x24, 0x70,
+	0xbd, 0x8c, 0x1f, 0xa2, 0xed, 0x68, 0x14, 0x74, 0x13, 0x3a, 0x69, 0x18, 0x10, 0x0e, 0x5c, 0xe3,
+	0x83, 0x0d, 0x23, 0xfe, 0x4f, 0xc2, 0x80, 0x38, 0x7c, 0x9b, 0xc1, 0x4e, 0x98, 0x96, 0x09, 0xcb,
+	0xe1, 0x6b, 0xe0, 0x18, 0x34, 0xe6, 0xd8, 0x79, 0x1c, 0x05, 0x53, 0xe0, 0x07, 0xe6, 0xbf, 0x0f,
+	0xd7, 0x60, 0x24, 0x18, 0x38, 0x3a, 0xe3, 0xbf, 0x59, 0xb0, 0xca, 0x45, 0x3b, 0xe4, 0x34, 0x3e,
+	0xf3, 0x22, 0xc3, 0x51, 0xd6, 0x72, 0x47, 0xd5, 0x2b, 0x57, 0x51, 0xee, 0xda, 0x95, 0xa2, 0x6b,
+	0x6b, 0xee, 0x10, 0xae, 0x2c, 0x9d, 0x51, 0x3d, 0x45, 0xb7, 0x7e, 0x0a, 0x3c, 0x87, 0x9e, 0x48,
+	0x7e, 0xf4, 0x31, 0xc0, 0x2c, 0x3f, 0x77, 0x0d, 0x00, 0x5a, 0x33, 0x1c, 0xe4, 0x68, 0x0c, 0x68,
+	0x1f, 0x46, 0x29, 0x89, 0xa2, 0x12, 0xeb, 0x1a, 0xf8, 0x75, 0x0e, 0x7c, 0x57, 0x81, 0x13, 0xaf,
+	0x3a, 0xcc, 0x7d, 0xcc, 0x47, 0x32, 0xe1, 0xf8, 0x6f, 0x06, 0x58, 0xf1, 0x5b, 0x2a, 0x33, 0x8d,
+	0xfd, 0xc4, 0x7f, 0x69, 0x41, 0x87, 0xe5, 0x2d, 0xf3, 0x8e, 0xea, 0xa9, 0x25, 0xf6, 0xaa, 0x6e,
+	0xfa, 0x7d, 0xea, 0xea, 0x2e, 0xac, 0x47, 0x34, 0x70, 0x67, 0x99, 0x5f, 0xe9, 0x41, 0xaa, 0x64,
+	0xc5, 0x19, 0x69, 0x9c, 0x9d, 0x92, 0x53, 0x23, 0x33, 0x8b, 0x42, 0x3a, 0x8b, 0x73, 0x1a, 0x48,
+	0xc7, 0xaa, 0x65, 0x89, 0x5f, 0x3d, 0x0d, 0xbf, 0x58, 0xaa, 0xbe, 0xcb, 0x03, 0x57, 0x25, 0x9e,
+	0x48, 0x30, 0x9d, 0x84, 0x6e, 0xc3, 0x46, 0x4a, 0xfc, 0x98, 0x06, 0xa9, 0xeb, 0x8b, 0x76, 0x8c,
+	0x04, 0x3c, 0x52, 0xbb, 0x4e, 0x7d, 0x03, 0x7f, 0x65, 0xc1, 0xc6, 0x0b, 0xf6, 0x50, 0x90, 0x11,
+	0x26, 0x6a, 0xd4, 0xff, 0x33, 0x41, 0xf5, 0xb8, 0xeb, 0x54, 0xe2, 0x4e, 0x25, 0x52, 0xf7, 0xc2,
+	0x44, 0xc2, 0xff, 0xb0, 0x00, 0xe9, 0x46, 0x4a, 0x88, 0x7e, 0x00, 0x93, 0x90, 0x66, 0x24, 0xa1,
+	0x5e, 0xe4, 0x9e, 0x7a, 0x99, 0x3f, 0x27, 0x4b, 0x22, 0xae, 0xc6, 0x86, 0x7e, 0x08, 0x63, 0xfe,
+	0xe2, 0x4a, 0x73, 0xdf, 0x27, 0x69, 0x4a, 0x54, 0xe8, 0x15, 0x00, 0xca, 0x1a, 0xc5, 0x13, 0xb1,
+	0xe9, 0x54, 0x58, 0xd1, 0x3d, 0xd6, 0x13, 0x9c, 0x7a, 0x21, 0xe5, 0xaf, 0x03, 0x9e, 0x14, 0x6d,
+	0x0e, 0xbf, 0x15, 0xb5, 0x55, 0x2e, 0xfc, 0xc7, 0x16, 0xac, 0x97, 0xe7, 0x38, 0x3a, 0x63, 0x0f,
+	0xb2, 0x7b, 0x30, 0x36, 0xad, 0xe3, 0x3e, 0xaf, 0xca, 0x7a, 0xba, 0xe2, 0x54, 0xd8, 0xd0, 0x03,
+	0x58, 0xd5, 0xed, 0xaa, 0x56, 0x00, 0xed, 0x00, 0x0c, 0xfd, 0x74, 0x56, 0xf4, 0xe0, 0xfd, 0x0e,
+	0xf0, 0x74, 0xa5, 0x76, 0x04, 0xf4, 0x50, 0x6a, 0x7d, 0x29, 0x9a, 0x68, 0x7e, 0xa3, 0x15, 0xad,
+	0xb2, 0xbf, 0x7e, 0xba, 0xe2, 0xac, 0xe9, 0xac, 0xe9, 0x61, 0x1f, 0xba, 0x84, 0x9d, 0x19, 0x27,
+	0x00, 0x65, 0xef, 0xb6, 0xa4, 0xb8, 0x69, 0xa9, 0xda, 0x32, 0x53, 0xd5, 0xd6, 0xca, 0x9e, 0xa8,
+	0x99, 0x65, 0x85, 0xd3, 0x6a, 0x52, 0xc7, 0xa8, 0x49, 0xec, 0xe1, 0xc6, 0xf1, 0x93, 0x7c, 0x83,
+	0x27, 0x3d, 0x9e, 0xc2, 0x76, 0xf5, 0xa3, 0xe2, 0xa1, 0x8a, 0xc4, 0x8e, 0x91, 0x37, 0x17, 0x3c,
+	0x6c, 0xf0, 0x0f, 0x60, 0xd3, 0xf8, 0xa2, 0xe8, 0x77, 0x26, 0x2a, 0x89, 0xdc, 0x98, 0xba, 0xbc,
+	0x18, 0x58, 0x65, 0x31, 0xc0, 0x1f, 0xc3, 0x86, 0xf8, 0x4c, 0x7f, 0x87, 0x2f, 0xed, 0x21, 0xf1,
+	0x96, 0xb2, 0xcb, 0x78, 0x56, 0x6f, 0xc0, 0xfa, 0xc9, 0x3c, 0xcf, 0x82, 0xf8, 0xad, 0x7a, 0x5b,
+	0xb3, 0x46, 0xa8, 0x24, 0x49, 0xb6, 0x07, 0xf0, 0xc1, 0x49, 0x3e, 0x4b, 0xfd, 0x24, 0x9c, 0x91,
+	0x47, 0x41, 0x40, 0x02, 0xb3, 0x73, 0xb5, 0x61, 0x40, 0xde, 0x85, 0x69, 0xc6, 0x9a, 0x15, 0x8b,
+	0x83, 0x55, 0xb1, 0xc6, 0xdf, 0x82, 0x6b, 0xc5, 0xa7, 0xc2, 0x00, 0xf3, 0x63, 0xfc, 0x23, 0xb8,
+	0x54, 0x30, 0xb0, 0x28, 0x49, 0xb5, 0x99, 0x82, 0xea, 0x6d, 0x33, 0xef, 0xb5, 0xc4, 0xf2, 0x81,
+	0x63, 0x12, 0xf1, 0x57, 0x6d, 0xf1, 0x78, 0x93, 0x21, 0x7d, 0xd1, 0xe3, 0x4d, 0x2f, 0x66, 0xad,
+	0x4a, 0x31, 0xbb, 0x10, 0xa6, 0x96, 0xbd, 0x1c, 0x59, 0xdf, 0x94, 0xb8, 0x73, 0x2f, 0x9d, 0x8b,
+	0x6e, 0xc2, 0x91, 0x2b, 0x06, 0xf3, 0xde, 0x29, 0xab, 0x43, 0x6e, 0x42, 0x7c, 0x12, 0x9e, 0x11,
+	0xd1, 0x4c, 0xb4, 0x9d, 0x2a, 0x99, 0xc1, 0xb6, 0x24, 0xa5, 0x84, 0xaa, 0x96, 0x42, 0x27, 0xd5,
+	0x1e, 0x8f, 0x83, 0x86, 0xd7, 0xed, 0x6d, 0xe8, 0x24, 0x71, 0x44, 0x78, 0x23, 0x31, 0x3e, 0x98,
+	0x36, 0xa4, 0xfa, 0x9e, 0x13, 0x47, 0xc4, 0xe1, 0x5c, 0xac, 0x10, 0xa8, 0x40, 0x2e, 0xed, 0x03,
+	0x2e, 0xb6, 0xbe, 0xc1, 0xae, 0xa1, 0x20, 0x72, 0x1b, 0x47, 0x62, 0xb4, 0x63, 0x10, 0xf1, 0x55,
+	0xe8, 0x30, 0x0d, 0x68, 0x08, 0xdd, 0x5f, 0x3c, 0xfa, 0xe9, 0x91, 0x33, 0x59, 0x61, 0x3f, 0x7f,
+	0xc6, 0x7f, 0x5a, 0xf8, 0x05, 0xac, 0x7e, 0x46, 0x67, 0xdf, 0x68, 0x7e, 0xc3, 0x9e, 0x9e, 0x09,
+	0x91, 0xf5, 0x48, 0xbe, 0x75, 0x4a, 0x02, 0x5e, 0x87, 0x35, 0x29, 0x51, 0x84, 0xe8, 0xad, 0xeb,
+	0x30, 0x2c, 0xaa, 0x03, 0xea, 0x43, 0xfb, 0xf0, 0xb3, 0xdf, 0x4c, 0x56, 0xd0, 0x00, 0x3a, 0x27,
+	0x47, 0xc7, 0xc7, 0x13, 0xeb, 0xe0, 0xef, 0x13, 0x68, 0xff, 0x3a, 0x0f, 0xd0, 0x0c, 0x46, 0xda,
+	0x48, 0x0b, 0xd9, 0xcb, 0xc7, 0x70, 0xf6, 0x07, 0x8d, 0x7b, 0x32, 0x25, 0xec, 0x2f, 0xff, 0xfd,
+	0x9f, 0x3f, 0xb7, 0xb6, 0xf0, 0xfa, 0xfe, 0xd9, 0xf7, 0xf7, 0xbd, 0x20, 0x50, 0xee, 0x78, 0x68,
+	0xdd, 0x42, 0x0e, 0xf4, 0xe5, 0xfc, 0x0a, 0x6d, 0x6b, 0x32, 0xb4, 0x44, 0xb5, 0x2f, 0xd7, 0xe8,
+	0x52, 0xee, 0x36, 0x97, 0x3b, 0xc1, 0x23, 0x29, 0x97, 0x85, 0x21, 0x93, 0x39, 0x83, 0x91, 0x86,
+	0x12, 0xa5, 0xdd, 0x75, 0xb0, 0x29, 0xed, 0x6e, 0x80, 0x15, 0xd3, 0xee, 0x84, 0x33, 0xf0, 0xfc,
+	0x60, 0x3a, 0x5e, 0xd7, 0x66, 0x64, 0xd7, 0x96, 0xcd, 0x9c, 0x84, 0xa6, 0xeb, 0x17, 0x8f, 0xa4,
+	0x94, 0x32, 0x84, 0x98, 0x32, 0x89, 0xc5, 0x6a, 0xc8, 0xe6, 0x40, 0x5f, 0x4e, 0x85, 0x4a, 0x27,
+	0x99, 0x43, 0xa5, 0xd2, 0x49, 0xd5, 0xf1, 0x91, 0xe1, 0x24, 0x19, 0x12, 0xec, 0x00, 0x87, 0xd0,
+	0x3e, 0xf4, 0x28, 0x2a, 0x06, 0x01, 0xe5, 0xc8, 0xd0, 0xde, 0x34, 0x68, 0x52, 0x0e, 0xe2, 0x72,
+	0x56, 0x71, 0x9f, 0xc9, 0x99, 0x79, 0x94, 0xc9, 0xf8, 0x09, 0x74, 0x79, 0x64, 0xa1, 0x2d, 0xf5,
+	0x85, 0x1e, 0xba, 0xf6, 0xa5, 0x0a, 0x55, 0x4a, 0xda, 0xe2, 0x92, 0xc6, 0x78, 0xc8, 0x24, 0xe5,
+	0x54, 0xca, 0x3a, 0x86, 0xbe, 0x9c, 0xe0, 0x94, 0x67, 0x34, 0xa7, 0x3c, 0xe5, 0x19, 0x2b, 0xa3,
+	0x1e, 0x3c, 0xe1, 0x12, 0x01, 0x0d, 0x98, 0xc4, 0x90, 0x89, 0xf8, 0x3d, 0x8c, 0xb4, 0x49, 0x44,
+	0x19, 0x02, 0xf5, 0xc1, 0x46, 0x19, 0x02, 0x0d, 0xa3, 0x0b, 0x65, 0x2b, 0x5a, 0x65, 0x92, 0x59,
+	0xce, 0x71, 0xe9, 0xbf, 0x02, 0x28, 0xe7, 0x00, 0xe8, 0x4a, 0xd3, 0x6c, 0x40, 0xc8, 0xb6, 0x97,
+	0x8f, 0x0d, 0x94, 0x43, 0x11, 0x30, 0xd1, 0xb2, 0x95, 0x7f, 0x05, 0x63, 0xf3, 0x49, 0x5f, 0x46,
+	0x55, 0xe3, 0x0c, 0xa0, 0x8c, 0xaa, 0xe6, 0x49, 0x80, 0xba, 0x7d, 0x34, 0xe6, 0xb7, 0x5f, 0x8a,
+	0x3d, 0x81, 0x61, 0xf1, 0xda, 0x47, 0x53, 0x5d, 0x88, 0x3e, 0x14, 0xb0, 0xaf, 0x34, 0xec, 0xa8,
+	0x72, 0xc8, 0x25, 0x8f, 0x10, 0xbf, 0x45, 0xd1, 0x57, 0x2b, 0xa1, 0x7c, 0x1c, 0x66, 0x0a, 0xd5,
+	0x46, 0x05, 0x15, 0xa1, 0xfa, 0xc0, 0xa0, 0x22, 0x94, 0xcb, 0xf9, 0x1c, 0xa0, 0x6c, 0xf7, 0x4a,
+	0x5f, 0xd7, 0xfa, 0xed, 0x32, 0x3a, 0x2a, 0xdd, 0x21, 0xbe, 0xc2, 0x85, 0x6e, 0x62, 0xee, 0x03,
+	0x3e, 0xd0, 0x57, 0x59, 0x7c, 0xc7, 0x42, 0x2f, 0x61, 0x5c, 0xf2, 0x9f, 0x9c, 0x53, 0xff, 0x22,
+	0x15, 0x76, 0xd3, 0x96, 0x34, 0xfd, 0x1a, 0xd7, 0x72, 0x19, 0x23, 0x53, 0x4b, 0x7a, 0x4e, 0x7d,
+	0x16, 0xde, 0xbf, 0x85, 0x91, 0x36, 0xc4, 0x2d, 0x03, 0xb2, 0x3e, 0xd9, 0xb5, 0x9b, 0xda, 0x4f,
+	0x13, 0x8b, 0x88, 0xf8, 0x88, 0x75, 0x86, 0x4c, 0x36, 0x85, 0xb1, 0xd9, 0x61, 0x95, 0x51, 0xd3,
+	0xd8, 0xae, 0x95, 0x51, 0xb3, 0xa4, 0x31, 0x33, 0xce, 0x22, 0x80, 0x4f, 0xc7, 0xec, 0x2f, 0x00,
+	0xca, 0xfe, 0xa8, 0xf4, 0x57, 0xad, 0xc5, 0xb2, 0xed, 0xa6, 0x2d, 0xa9, 0xc3, 0xb8, 0x15, 0xa1,
+	0x43, 0xe1, 0xf7, 0x2f, 0x61, 0xa0, 0xda, 0x2a, 0x54, 0xdc, 0x6a, 0xa5, 0xf7, 0xb2, 0xa7, 0xf5,
+	0x0d, 0x29, 0xf9, 0x32, 0x97, 0xbc, 0x81, 0x79, 0xce, 0xa6, 0x72, 0x57, 0xf8, 0x69, 0xab, 0xa9,
+	0x35, 0x43, 0x1f, 0x16, 0xa2, 0x96, 0x37, 0x6e, 0xb6, 0xd9, 0xd6, 0xe3, 0x1d, 0xae, 0xc4, 0x46,
+	0x53, 0xae, 0x44, 0x7d, 0xe7, 0xb1, 0xef, 0xc4, 0xbd, 0xdf, 0xb1, 0xd0, 0x1f, 0x60, 0xbb, 0xb9,
+	0x9f, 0x43, 0x37, 0x6b, 0x1a, 0x9b, 0xfa, 0x3d, 0x7b, 0xcb, 0x7c, 0x0b, 0x89, 0xd1, 0x05, 0xc6,
+	0x5c, 0xf5, 0x55, 0x64, 0x1b, 0xaa, 0x85, 0x0b, 0x4b, 0xe5, 0x33, 0x18, 0x9b, 0xbd, 0x62, 0x19,
+	0x14, 0x8d, 0x3d, 0xe4, 0x85, 0x61, 0x27, 0xaa, 0x52, 0xa1, 0x8b, 0x05, 0x5e, 0x7a, 0xc7, 0x9a,
+	0xf5, 0xf8, 0xff, 0x7c, 0x77, 0xff, 0x17, 0x00, 0x00, 0xff, 0xff, 0x9f, 0x57, 0xeb, 0xe6, 0x1d,
+	0x1c, 0x00, 0x00,
 }
