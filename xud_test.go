@@ -19,6 +19,7 @@ import (
 	"golang.org/x/net/context"
 	"strings"
 	"testing"
+	"time"
 )
 
 type testCase struct {
@@ -56,6 +57,10 @@ var testsCases = []*testCase{
 	{
 		name: "connect to peer",
 		test: testConnectPeer,
+	},
+	{
+		name: "place order and broadcast",
+		test: testPlaceOrderAndBroadcast,
 	},
 }
 
@@ -128,7 +133,7 @@ func testConnectPeer(net *xudtest.NetworkHarness, ht *harnessTest) {
 		ht.Fatalf("RPC Connect failure: %v", err)
 	}
 
-	// assert Alice peer (bob)
+	// assert Alice's peer (bob)
 
 	resListPeers, err := net.Alice.Client.ListPeers(context.Background(), &xudrpc.ListPeersRequest{})
 	if err != nil {
@@ -141,7 +146,7 @@ func testConnectPeer(net *xudtest.NetworkHarness, ht *harnessTest) {
 	assertPeersNum(ht, resListPeers.Peers, 1)
 	assertPeerInfo(ht, resListPeers.Peers[0], net.Bob)
 
-	// assert Bob peer (alice)
+	// assert Bob's peer (alice)
 
 	resListPeers, err = net.Bob.Client.ListPeers(context.Background(), &xudrpc.ListPeersRequest{})
 	if err != nil {
@@ -150,6 +155,111 @@ func testConnectPeer(net *xudtest.NetworkHarness, ht *harnessTest) {
 
 	assertPeersNum(ht, resListPeers.Peers, 1)
 	assertPeerInfo(ht, resListPeers.Peers[0], net.Alice)
+}
+
+func testPlaceOrderAndBroadcast(net *xudtest.NetworkHarness, ht *harnessTest) {
+	ctx, _ := context.WithTimeout(
+		context.Background(),
+		time.Duration(5*time.Second),
+	)
+
+	err := placeOrderAndBroadcast(ctx, net.Alice, net.Bob)
+	if err != nil {
+		ht.Fatalf("%v", err)
+	}
+}
+
+// TODO: implement
+func removeOrderAndInvalidate() {
+
+}
+
+func placeOrderAndBroadcast(ctx context.Context, node, peer *xudtest.HarnessNode) error {
+	req := &xudrpc.PlaceOrderRequest{
+		Price:    10,
+		Quantity: 10,
+		PairId:   "LTC/BTC",
+		OrderId:  "123",
+		Side:     xudrpc.OrderSide_BUY,
+	}
+
+	stream, err := peer.Client.SubscribeAddedOrders(ctx, &xudrpc.SubscribeAddedOrdersRequest{})
+	if err != nil {
+		return fmt.Errorf("SubscribeAddedOrders: %v", err)
+	}
+
+	recvChan := make(chan struct{})
+	errChan := make(chan error)
+	go func() {
+		for {
+			// Consume the subscription event.
+			// This waits until  the node notifies us
+			// that it received an order.
+			recvOrder, err := stream.Recv()
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			if recvOrder.Id == req.OrderId {
+				errChan <- fmt.Errorf("SubscribeAddedOrders: " +
+					"received order local id as global id")
+				return
+			}
+
+			// If different order was received,
+			// skip it and don't fail the test.
+			if val, ok := recvOrder.OwnOrPeer.(*xudrpc.Order_PeerPubKey);
+				!ok || val.PeerPubKey != node.PubKey() {
+				continue
+			}
+			if recvOrder.Price != req.Price ||
+				recvOrder.PairId != req.PairId ||
+				recvOrder.Quantity != req.Quantity ||
+				recvOrder.Side != req.Side ||
+				recvOrder.IsOwnOrder == true {
+				continue
+			}
+
+			// Order received.
+			close(recvChan)
+		}
+	}()
+
+	res, err := node.Client.PlaceOrderSync(context.Background(), req)
+	if err != nil {
+		return fmt.Errorf("PlaceOrderSync: %v", err)
+	}
+	if len(res.InternalMatches) != 0 {
+		return fmt.Errorf("PlaceOrderSync: unexpected internal matches")
+	}
+
+	if len(res.SwapSuccesses) != 0 {
+		return fmt.Errorf("PlaceOrderSync: unexpected swap successes")
+	}
+
+	if res.RemainingOrder == nil {
+		return fmt.Errorf("PlaceOrderSync: expected remaining order missing")
+	}
+
+	if res.RemainingOrder.Id == req.OrderId {
+		return fmt.Errorf("PlaceOrderSync: received order local id as global id")
+	}
+
+	if val, ok := res.RemainingOrder.OwnOrPeer.(*xudrpc.Order_LocalId);
+		!ok || val.LocalId != req.OrderId {
+		return fmt.Errorf("PlaceOrderSync: " +
+			"invalid order local id")
+	}
+
+	select {
+	case <-ctx.Done():
+		return errors.New("timeout reached before order was received")
+	case err := <-errChan:
+		return err
+	case <-recvChan:
+		return nil
+	}
 }
 
 func assertPeersNum(ht *harnessTest, peers []*xudrpc.Peer, num int) {
@@ -390,7 +500,7 @@ func TestExchangeUnionDaemon(t *testing.T) {
 				}
 
 				if strings.Contains(xudError.Err.Error(), "signal: killed") {
-					t.Logf("xud process (%v-%v) did not shutdown gracefully. process (%v) was killed",
+					t.Logf("xud process (%v-%v) did not shutdown gracefully. process (%v) killed",
 						xudError.Node.Id, xudError.Node.Name, xudError.Node.Cmd.Process.Pid)
 
 				} else {
