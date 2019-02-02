@@ -56,8 +56,8 @@ var testsCases = []*testCase{
 		test: testNetworkInit,
 	},
 	{
-		name: "order propagation",
-		test: testOrderPropagation,
+		name: "order broadcast and invalidation",
+		test: testOrderBroadcastAndInvalidation,
 	},
 }
 
@@ -98,14 +98,18 @@ func testNetworkInit(net *xudtest.NetworkHarness, ht *harnessTest) {
 	scenarios.Connect(ctx, net.Alice, net.Bob)
 }
 
-func testOrderPropagation(net *xudtest.NetworkHarness, ht *harnessTest) {
+func testOrderBroadcastAndInvalidation(net *xudtest.NetworkHarness, ht *harnessTest) {
 	ctx, _ := context.WithTimeout(
 		context.Background(),
 		time.Duration(5*time.Second),
 	)
 
-	orderId := "random_string"
-	_, err := scenarios.PlaceOrderAndBroadcast(ctx, net.Alice, net.Bob, "LTC/BTC", orderId)
+	order, err := scenarios.PlaceOrderAndBroadcast(ctx, net.Alice, net.Bob, "LTC/BTC", "random_order_id")
+	if err != nil {
+		ht.Fatalf("%v", err)
+	}
+
+	err = scenarios.RemoveOrderAndInvalidate(ctx, net.Alice, net.Bob, order)
 	if err != nil {
 		ht.Fatalf("%v", err)
 	}

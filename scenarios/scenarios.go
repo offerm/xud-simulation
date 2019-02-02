@@ -128,13 +128,12 @@ func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.Harn
 			return
 		}
 
+		// Verify a matching order.
 		if recvOrder.Id == req.OrderId {
 			errChan <- errors.New("SubscribeAddedOrders: received order local id as global id")
 			return
 		}
 
-		// If different order was received,
-		// skip it and don't fail the test.
 		if val, ok := recvOrder.OwnOrPeer.(*xudrpc.Order_PeerPubKey);
 			!ok || val.PeerPubKey != srcNode.PubKey() {
 			errChan <- errors.New("SubscribeAddedOrders: unexpected order peerPubKey")
@@ -149,6 +148,7 @@ func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.Harn
 			return
 		}
 
+		// Order received.
 		recvChan <- recvOrder
 	}()
 
@@ -214,6 +214,96 @@ func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.Harn
 	}
 
 	return res.RemainingOrder, nil
+}
+
+func RemoveOrderAndInvalidate(ctx context.Context, srcNode, destNode *xudtest.HarnessNode, order *xudrpc.Order) error {
+	// 	Fetch nodes current order book state.
+	prevSrcNodeCount, err := getOrdersCount(ctx, srcNode)
+	if err != nil {
+		return err
+	}
+	prevDestNodeCount, err := getOrdersCount(ctx, destNode)
+	if err != nil {
+		return err
+	}
+
+	// Subscribe to added orders on destNode.
+	stream, err := destNode.Client.SubscribeRemovedOrders(ctx, &xudrpc.SubscribeRemovedOrdersRequest{})
+	if err != nil {
+		return fmt.Errorf("SubscribeRemovedOrders: %v", err)
+	}
+
+	recvChan := make(chan struct{})
+	errChan := make(chan error)
+	go func() {
+		// Consume the subscription event.
+		// This waits until the node notifies us
+		// that it removed an order.
+		recvOrderRemoval, err := stream.Recv()
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		if recvOrderRemoval.LocalId != "" {
+			errChan <- errors.New("SubscribeRemovedOrders: unexpected order LocalId")
+			return
+		}
+
+		// Verify a matching order removal.
+		if recvOrderRemoval.OrderId != order.Id ||
+			recvOrderRemoval.Quantity != order.Quantity ||
+			recvOrderRemoval.PairId != order.PairId ||
+			recvOrderRemoval.IsOwnOrder == true {
+			errChan <- errors.New("SubscribeRemovedOrders: unexpected order")
+			return
+		}
+
+		// Order removal received.
+		close(recvChan)
+	}()
+
+	// Remove the order from srcNode.
+	req := &xudrpc.RemoveOrderRequest{OrderId: order.OwnOrPeer.(*xudrpc.Order_LocalId).LocalId}
+	res, err := srcNode.Client.RemoveOrder(ctx, req)
+	if err != nil {
+		return fmt.Errorf("RemoveOrder: %v", err)
+	}
+
+	// Verify no quantity on hold.
+	if res.QuantityOnHold != 0 {
+		return errors.New("unexpected quantity on hold")
+	}
+
+	// Verify that order invalidation was received.
+	select {
+	case <-ctx.Done():
+		return errors.New("timeout reached before order invalidation was received")
+	case err := <-errChan:
+		return err
+	case <-recvChan:
+	}
+
+	// Fetch nodes new order book state.
+	srcNodeCount, err := getOrdersCount(ctx, srcNode)
+	if err != nil {
+		return err
+	}
+	destNodeCount, err := getOrdersCount(ctx, destNode)
+	if err != nil {
+		return err
+	}
+
+	// Verify that a new order was added to the order book.
+	if srcNodeCount.Own != prevSrcNodeCount.Own-1 {
+		return errors.New("removed order exists on the order count")
+	}
+
+	if destNodeCount.Peer != prevDestNodeCount.Peer-1 {
+		return errors.New("removed order exists on the order count")
+	}
+
+	return nil
 }
 
 func getOrdersCount(ctx context.Context, n *xudtest.HarnessNode) (*xudrpc.OrdersCount, error) {

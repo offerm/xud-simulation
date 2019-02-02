@@ -37,7 +37,7 @@ go test -v
 
 ### Decentralized Order Book
 - [x] Placed order should get broadcasted over the network, and added to connected peers' order books.
-- [ ] Removed order should get invalidated over the network, and removed from connected peers' order books.
+- [x] Removed order should get invalidated over the network, and removed from connected peers' order books.
 - [ ] Placed order should get internal matches, and trigger order invalidation over the network.
 - [ ] Peer disconnection should trigger orders removal to all his orders.
 
