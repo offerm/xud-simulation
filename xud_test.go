@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/ExchangeUnion/xud-simulation/lntest"
+	"github.com/ExchangeUnion/xud-simulation/scenarios"
 	"github.com/ExchangeUnion/xud-simulation/xudrpc"
 	"github.com/ExchangeUnion/xud-simulation/xudtest"
 	"github.com/go-errors/errors"
@@ -51,16 +52,12 @@ var testsCases = []*testCase{
 		test: testVerifyConnectivity,
 	},
 	{
-		name: "add currencies and pair",
-		test: testAddCurrenciesAndPair,
+		name: "network initialization",
+		test: testNetworkInit,
 	},
 	{
-		name: "connect to peer",
-		test: testConnectPeer,
-	},
-	{
-		name: "place order and broadcast",
-		test: testPlaceOrderAndBroadcast,
+		name: "order propagation",
+		test: testOrderPropagation,
 	},
 }
 
@@ -91,194 +88,25 @@ func testVerifyConnectivity(net *xudtest.NetworkHarness, ht *harnessTest) {
 	}
 }
 
-func testAddCurrenciesAndPair(net *xudtest.NetworkHarness, ht *harnessTest) {
-	for _, node := range net.ActiveNodes {
-		reqAddCurr := &xudrpc.AddCurrencyRequest{Currency: "BTC", SwapClient: 0}
-		if _, err := node.Client.AddCurrency(context.Background(), reqAddCurr); err != nil {
-			ht.Fatalf("RPC AddCurrency failure: %v", err)
-		}
+func testNetworkInit(net *xudtest.NetworkHarness, ht *harnessTest) {
+	ctx := context.Background()
 
-		reqAddCurr = &xudrpc.AddCurrencyRequest{Currency: "LTC", SwapClient: 0}
-		if _, err := node.Client.AddCurrency(context.Background(), reqAddCurr); err != nil {
-			ht.Fatalf("RPC AddCurrency failure: %v", err)
-		}
-
-		reqAddPair := &xudrpc.AddPairRequest{BaseCurrency: "LTC", QuoteCurrency: "BTC"}
-		if _, err := node.Client.AddPair(context.Background(), reqAddPair); err != nil {
-			ht.Fatalf("RPC AddPair failure: %v", err)
-		}
-
-		resGetInfo, err := node.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
-		if err != nil {
-			ht.Fatalf("RPC GetInfo failure: %v", err)
-		}
-
-		if resGetInfo.NumPairs != 1 {
-			ht.Fatalf("RPC GetInfo: added pair is missing.")
-		}
+	for _, n := range net.ActiveNodes {
+		scenarios.AddPair(ctx, n, "LTC", "BTC", xudrpc.AddCurrencyRequest_LND)
 	}
+
+	scenarios.Connect(ctx, net.Alice, net.Bob)
 }
 
-func testConnectPeer(net *xudtest.NetworkHarness, ht *harnessTest) {
-	bobNodeUri := fmt.Sprintf("%v@%v",
-		net.Bob.PubKey(),
-		net.Bob.Cfg.P2PAddr(),
-	)
-
-	// Alice to connect to Bob
-
-	reqConn := &xudrpc.ConnectRequest{NodeUri: bobNodeUri}
-	_, err := net.Alice.Client.Connect(context.Background(), reqConn)
-	if err != nil {
-		ht.Fatalf("RPC Connect failure: %v", err)
-	}
-
-	// assert Alice's peer (bob)
-
-	resListPeers, err := net.Alice.Client.ListPeers(context.Background(), &xudrpc.ListPeersRequest{})
-	if err != nil {
-		ht.Fatalf("RPC ListPeers failure: %v", err)
-	}
-	if len(resListPeers.Peers) != 1 {
-		ht.Fatalf("RPC ListPeers: peers are missing.")
-	}
-
-	assertPeersNum(ht, resListPeers.Peers, 1)
-	assertPeerInfo(ht, resListPeers.Peers[0], net.Bob)
-
-	// assert Bob's peer (alice)
-
-	resListPeers, err = net.Bob.Client.ListPeers(context.Background(), &xudrpc.ListPeersRequest{})
-	if err != nil {
-		ht.Fatalf("RPC ListPeers failure: %v", err)
-	}
-
-	assertPeersNum(ht, resListPeers.Peers, 1)
-	assertPeerInfo(ht, resListPeers.Peers[0], net.Alice)
-}
-
-func testPlaceOrderAndBroadcast(net *xudtest.NetworkHarness, ht *harnessTest) {
+func testOrderPropagation(net *xudtest.NetworkHarness, ht *harnessTest) {
 	ctx, _ := context.WithTimeout(
 		context.Background(),
 		time.Duration(5*time.Second),
 	)
 
-	err := placeOrderAndBroadcast(ctx, net.Alice, net.Bob)
+	err := scenarios.PlaceOrderAndBroadcast(ctx, net.Alice, net.Bob, "LTC/BTC")
 	if err != nil {
 		ht.Fatalf("%v", err)
-	}
-}
-
-// TODO: implement
-func removeOrderAndInvalidate() {
-
-}
-
-func placeOrderAndBroadcast(ctx context.Context, node, peer *xudtest.HarnessNode) error {
-	req := &xudrpc.PlaceOrderRequest{
-		Price:    10,
-		Quantity: 10,
-		PairId:   "LTC/BTC",
-		OrderId:  "123",
-		Side:     xudrpc.OrderSide_BUY,
-	}
-
-	stream, err := peer.Client.SubscribeAddedOrders(ctx, &xudrpc.SubscribeAddedOrdersRequest{})
-	if err != nil {
-		return fmt.Errorf("SubscribeAddedOrders: %v", err)
-	}
-
-	recvChan := make(chan struct{})
-	errChan := make(chan error)
-	go func() {
-		for {
-			// Consume the subscription event.
-			// This waits until  the node notifies us
-			// that it received an order.
-			recvOrder, err := stream.Recv()
-			if err != nil {
-				errChan <- err
-				return
-			}
-
-			if recvOrder.Id == req.OrderId {
-				errChan <- fmt.Errorf("SubscribeAddedOrders: " +
-					"received order local id as global id")
-				return
-			}
-
-			// If different order was received,
-			// skip it and don't fail the test.
-			if val, ok := recvOrder.OwnOrPeer.(*xudrpc.Order_PeerPubKey);
-				!ok || val.PeerPubKey != node.PubKey() {
-				continue
-			}
-			if recvOrder.Price != req.Price ||
-				recvOrder.PairId != req.PairId ||
-				recvOrder.Quantity != req.Quantity ||
-				recvOrder.Side != req.Side ||
-				recvOrder.IsOwnOrder == true {
-				continue
-			}
-
-			// Order received.
-			close(recvChan)
-		}
-	}()
-
-	res, err := node.Client.PlaceOrderSync(context.Background(), req)
-	if err != nil {
-		return fmt.Errorf("PlaceOrderSync: %v", err)
-	}
-	if len(res.InternalMatches) != 0 {
-		return fmt.Errorf("PlaceOrderSync: unexpected internal matches")
-	}
-
-	if len(res.SwapSuccesses) != 0 {
-		return fmt.Errorf("PlaceOrderSync: unexpected swap successes")
-	}
-
-	if res.RemainingOrder == nil {
-		return fmt.Errorf("PlaceOrderSync: expected remaining order missing")
-	}
-
-	if res.RemainingOrder.Id == req.OrderId {
-		return fmt.Errorf("PlaceOrderSync: received order local id as global id")
-	}
-
-	if val, ok := res.RemainingOrder.OwnOrPeer.(*xudrpc.Order_LocalId);
-		!ok || val.LocalId != req.OrderId {
-		return fmt.Errorf("PlaceOrderSync: " +
-			"invalid order local id")
-	}
-
-	select {
-	case <-ctx.Done():
-		return errors.New("timeout reached before order was received")
-	case err := <-errChan:
-		return err
-	case <-recvChan:
-		return nil
-	}
-}
-
-func assertPeersNum(ht *harnessTest, peers []*xudrpc.Peer, num int) {
-	if len(peers) != num {
-		ht.Fatalf("Invalid peers num.")
-	}
-}
-
-func assertPeerInfo(ht *harnessTest, peer *xudrpc.Peer, node *xudtest.HarnessNode) {
-	if peer.NodePubKey != node.PubKey() {
-		ht.Fatalf("Invalid peer NodePubKey")
-	}
-
-	if peer.LndBtcPubKey != node.LndBtcNode.PubKeyStr {
-		ht.Fatalf("Invalid peer LndBtcPubKey")
-	}
-
-	if peer.LndLtcPubKey != node.LndLtcNode.PubKeyStr {
-		ht.Fatalf("Invalid peer LndLtcPubKey")
 	}
 }
 
