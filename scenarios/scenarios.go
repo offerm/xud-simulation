@@ -89,9 +89,19 @@ func Connect(ctx context.Context, srcNode, destNode *xudtest.HarnessNode) error 
 	return nil
 }
 
-
 func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.HarnessNode,
 	pairId string) error {
+	// 	Fetch nodes current order book state.
+	prevSrcNodeCount, err := getOrdersCount(ctx, srcNode)
+	if err != nil {
+		return nil
+	}
+	prevDestNodeCount, err := getOrdersCount(ctx, destNode)
+	if err != nil {
+		return nil
+	}
+
+	// Subscribe to added orders on destNode.
 	req := &xudrpc.PlaceOrderRequest{
 		Price:    10,
 		Quantity: 10,
@@ -143,7 +153,8 @@ func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.Harn
 		}
 	}()
 
-	res, err := srcNode.Client.PlaceOrderSync(context.Background(), req)
+	// Place order on srcNode.
+	res, err := srcNode.Client.PlaceOrderSync(ctx, req)
 	if err != nil {
 		return fmt.Errorf("PlaceOrderSync: %v", err)
 	}
@@ -175,10 +186,47 @@ func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.Harn
 	case err := <-errChan:
 		return err
 	case <-recvChan:
+	}
+
+	// 	Fetch nodes new order book state.
+	srcNodeCount, err := getOrdersCount(ctx, srcNode)
+	if err != nil {
 		return nil
 	}
+	destNodeCount, err := getOrdersCount(ctx, destNode)
+	if err != nil {
+		return nil
+	}
+
+	// Verify that a new order was added.
+	if srcNodeCount.Own != prevSrcNodeCount.Own + 1 {
+		return errors.New("added order is missing on the order count")
+	}
+
+	if destNodeCount.Peer != prevDestNodeCount.Peer + 1 {
+		return errors.New("added order is missing on the orders count")
+	}
+
+	return nil
 }
 
+func getOrdersCount(ctx context.Context, n *xudtest.HarnessNode) (*xudrpc.OrdersCount, error) {
+	info, err := getInfo(ctx, n)
+	if err != nil {
+		return nil, err
+	}
+
+	return info.Orders, nil
+}
+
+func getInfo(ctx context.Context, n *xudtest.HarnessNode) (*xudrpc.GetInfoResponse, error) {
+	info, err := n.Client.GetInfo(ctx, &xudrpc.GetInfoRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("RPC GetInfo failure: %v", err)
+	}
+
+	return info, nil
+}
 
 func assertPeersNum(p []*xudrpc.Peer, num int) error {
 	if len(p) != num {

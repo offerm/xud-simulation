@@ -48,8 +48,8 @@ func newHarnessTest(t *testing.T) *harnessTest {
 
 var testsCases = []*testCase{
 	{
-		name: "verify connectivity",
-		test: testVerifyConnectivity,
+		name: "connectivity",
+		test: testConnectivity,
 	},
 	{
 		name: "network initialization",
@@ -61,7 +61,7 @@ var testsCases = []*testCase{
 	},
 }
 
-func testVerifyConnectivity(net *xudtest.NetworkHarness, ht *harnessTest) {
+func testConnectivity(net *xudtest.NetworkHarness, ht *harnessTest) {
 	for _, node := range net.ActiveNodes {
 		info, err := node.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
 		if err != nil {
