@@ -90,7 +90,7 @@ func Connect(ctx context.Context, srcNode, destNode *xudtest.HarnessNode) error 
 }
 
 func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.HarnessNode,
-	pairId string) error {
+	pairId string, orderId string) error {
 	// 	Fetch nodes current order book state.
 	prevSrcNodeCount, err := getOrdersCount(ctx, srcNode)
 	if err != nil {
@@ -101,15 +101,16 @@ func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.Harn
 		return nil
 	}
 
-	// Subscribe to added orders on destNode.
+	// Initialize the order.
 	req := &xudrpc.PlaceOrderRequest{
 		Price:    10,
 		Quantity: 10,
 		PairId:   pairId,
-		OrderId:  "random_string",
+		OrderId:  orderId,
 		Side:     xudrpc.OrderSide_BUY,
 	}
 
+	// Subscribe to added orders on destNode.
 	stream, err := destNode.Client.SubscribeAddedOrders(ctx, &xudrpc.SubscribeAddedOrdersRequest{})
 	if err != nil {
 		return fmt.Errorf("SubscribeAddedOrders: %v", err)
@@ -153,7 +154,7 @@ func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.Harn
 		}
 	}()
 
-	// Place order on srcNode.
+	// Place the order on srcNode.
 	res, err := srcNode.Client.PlaceOrderSync(ctx, req)
 	if err != nil {
 		return fmt.Errorf("PlaceOrderSync: %v", err)
@@ -180,6 +181,7 @@ func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.Harn
 			"invalid order local id")
 	}
 
+	// Verify that the order was received.
 	select {
 	case <-ctx.Done():
 		return errors.New("timeout reached before order was received")
@@ -198,12 +200,12 @@ func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.Harn
 		return nil
 	}
 
-	// Verify that a new order was added.
-	if srcNodeCount.Own != prevSrcNodeCount.Own + 1 {
+	// Verify that a new order was added to the order book.
+	if srcNodeCount.Own != prevSrcNodeCount.Own+1 {
 		return errors.New("added order is missing on the order count")
 	}
 
-	if destNodeCount.Peer != prevDestNodeCount.Peer + 1 {
+	if destNodeCount.Peer != prevDestNodeCount.Peer+1 {
 		return errors.New("added order is missing on the orders count")
 	}
 

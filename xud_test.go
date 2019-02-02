@@ -104,7 +104,8 @@ func testOrderPropagation(net *xudtest.NetworkHarness, ht *harnessTest) {
 		time.Duration(5*time.Second),
 	)
 
-	err := scenarios.PlaceOrderAndBroadcast(ctx, net.Alice, net.Bob, "LTC/BTC")
+	orderId := "random_string"
+	err := scenarios.PlaceOrderAndBroadcast(ctx, net.Alice, net.Bob, "LTC/BTC", orderId)
 	if err != nil {
 		ht.Fatalf("%v", err)
 	}
