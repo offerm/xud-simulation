@@ -35,15 +35,15 @@ go test -v
 - [ ] Unbanning: If Alice unbanned Bob, connection attempts from both directions should succeed.
 - [ ] Duplicate connection: If Alice and Bob are already connected, connection attempts from both directions should get blocked.
 
-## Decentralized Order Book
+### Decentralized Order Book
 - [x] Placed order should get broadcasted over the network, and added to connected peers' order books.
 - [ ] Removed order should get invalidated over the network, and removed from connected peers' order books.
 - [ ] Placed order should get internal matches, and trigger order invalidation over the network.
 - [ ] Peer disconnection should trigger orders removal to all his orders.
 
-## Node State
+### Node State
 - [ ] Removed pair should trigger order removal for all the pair's orders, and removed from connected peers' order books.
 - [ ] Updated `LND-BTC`/`LND-LTC` public keys should propagate over the network.
 
-## Swaps
+### Swaps
 - [ ] Placed order should trigger a swap and order invalidation on the maker order to all connected peers besides the taker peer.
