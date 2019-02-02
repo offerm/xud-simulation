@@ -90,15 +90,15 @@ func Connect(ctx context.Context, srcNode, destNode *xudtest.HarnessNode) error 
 }
 
 func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.HarnessNode,
-	pairId string, orderId string) error {
+	pairId string, orderId string) (*xudrpc.Order, error) {
 	// 	Fetch nodes current order book state.
 	prevSrcNodeCount, err := getOrdersCount(ctx, srcNode)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	prevDestNodeCount, err := getOrdersCount(ctx, destNode)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	// Initialize the order.
@@ -113,103 +113,107 @@ func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.Harn
 	// Subscribe to added orders on destNode.
 	stream, err := destNode.Client.SubscribeAddedOrders(ctx, &xudrpc.SubscribeAddedOrdersRequest{})
 	if err != nil {
-		return fmt.Errorf("SubscribeAddedOrders: %v", err)
+		return nil, fmt.Errorf("SubscribeAddedOrders: %v", err)
 	}
 
-	recvChan := make(chan struct{})
+	recvChan := make(chan *xudrpc.Order)
 	errChan := make(chan error)
 	go func() {
-		for {
-			// Consume the subscription event.
-			// This waits until  the node notifies us
-			// that it received an order.
-			recvOrder, err := stream.Recv()
-			if err != nil {
-				errChan <- err
-				return
-			}
-
-			if recvOrder.Id == req.OrderId {
-				errChan <- fmt.Errorf("SubscribeAddedOrders: " +
-					"received order local id as global id")
-				return
-			}
-
-			// If different order was received,
-			// skip it and don't fail the test.
-			if val, ok := recvOrder.OwnOrPeer.(*xudrpc.Order_PeerPubKey);
-				!ok || val.PeerPubKey != srcNode.PubKey() {
-				continue
-			}
-			if recvOrder.Price != req.Price ||
-				recvOrder.PairId != req.PairId ||
-				recvOrder.Quantity != req.Quantity ||
-				recvOrder.Side != req.Side ||
-				recvOrder.IsOwnOrder == true {
-				continue
-			}
-
-			// Order received.
-			close(recvChan)
+		// Consume the subscription event.
+		// This waits until the node notifies us
+		// that it received an order.
+		recvOrder, err := stream.Recv()
+		if err != nil {
+			errChan <- err
+			return
 		}
+
+		if recvOrder.Id == req.OrderId {
+			errChan <- errors.New("SubscribeAddedOrders: received order local id as global id")
+			return
+		}
+
+		// If different order was received,
+		// skip it and don't fail the test.
+		if val, ok := recvOrder.OwnOrPeer.(*xudrpc.Order_PeerPubKey);
+			!ok || val.PeerPubKey != srcNode.PubKey() {
+			errChan <- errors.New("SubscribeAddedOrders: unexpected order peerPubKey")
+			return
+		}
+		if recvOrder.Price != req.Price ||
+			recvOrder.PairId != req.PairId ||
+			recvOrder.Quantity != req.Quantity ||
+			recvOrder.Side != req.Side ||
+			recvOrder.IsOwnOrder == true {
+			errChan <- errors.New("SubscribeAddedOrders: unexpected order")
+			return
+		}
+
+		recvChan <- recvOrder
 	}()
 
 	// Place the order on srcNode.
 	res, err := srcNode.Client.PlaceOrderSync(ctx, req)
 	if err != nil {
-		return fmt.Errorf("PlaceOrderSync: %v", err)
+		return nil, fmt.Errorf("PlaceOrderSync: %v", err)
 	}
 	if len(res.InternalMatches) != 0 {
-		return fmt.Errorf("PlaceOrderSync: unexpected internal matches")
+		return nil, errors.New("PlaceOrderSync: unexpected internal matches")
 	}
 
 	if len(res.SwapSuccesses) != 0 {
-		return fmt.Errorf("PlaceOrderSync: unexpected swap successes")
+		return nil, fmt.Errorf("PlaceOrderSync: unexpected swap successes")
 	}
 
 	if res.RemainingOrder == nil {
-		return fmt.Errorf("PlaceOrderSync: expected remaining order missing")
+		return nil, errors.New("PlaceOrderSync: expected remaining order missing")
 	}
 
 	if res.RemainingOrder.Id == req.OrderId {
-		return fmt.Errorf("PlaceOrderSync: received order local id as global id")
+		return nil, errors.New("PlaceOrderSync: received order local id as global id")
 	}
 
 	if val, ok := res.RemainingOrder.OwnOrPeer.(*xudrpc.Order_LocalId);
 		!ok || val.LocalId != req.OrderId {
-		return fmt.Errorf("PlaceOrderSync: " +
-			"invalid order local id")
+		return nil, errors.New("PlaceOrderSync: invalid order local id")
 	}
+
+	var peerOrder *xudrpc.Order
 
 	// Verify that the order was received.
 	select {
 	case <-ctx.Done():
-		return errors.New("timeout reached before order was received")
+		return nil, errors.New("timeout reached before order was received")
 	case err := <-errChan:
-		return err
-	case <-recvChan:
+		return nil, err
+	case peerOrder = <-recvChan:
 	}
 
-	// 	Fetch nodes new order book state.
+	// Verify a consistent order global id.
+	if peerOrder.Id != res.RemainingOrder.Id {
+		return nil, errors.New("inconsistent order global id")
+	}
+
+	// Fetch nodes new order book state.
 	srcNodeCount, err := getOrdersCount(ctx, srcNode)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	destNodeCount, err := getOrdersCount(ctx, destNode)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	// Verify that a new order was added to the order book.
 	if srcNodeCount.Own != prevSrcNodeCount.Own+1 {
-		return errors.New("added order is missing on the order count")
+		return nil, errors.New("added order is missing on the order count")
 	}
 
 	if destNodeCount.Peer != prevDestNodeCount.Peer+1 {
-		return errors.New("added order is missing on the orders count")
+		return nil, errors.New("added order is missing on the orders count")
 	}
 
-	return nil
+	return res.RemainingOrder, nil
 }
 
 func getOrdersCount(ctx context.Context, n *xudtest.HarnessNode) (*xudrpc.OrdersCount, error) {
