@@ -2,14 +2,12 @@ package xudtest
 
 import (
 	"github.com/ExchangeUnion/xud-simulation/lntest"
-	"log"
-	"os/exec"
 	"sync"
 )
 
 type xudError struct {
 	Node *HarnessNode
-	Err error
+	Err  error
 }
 
 type NetworkHarness struct {
@@ -29,10 +27,6 @@ type NetworkHarness struct {
 }
 
 func NewNetworkHarness(lndBtcNetwork *lntest.NetworkHarness, lndLtcNetwork *lntest.NetworkHarness) (*NetworkHarness, error) {
-	if err := installXud(); err != nil {
-		return nil, err
-	}
-
 	n := NetworkHarness{
 		lndBtcNetwork: lndBtcNetwork,
 		lndLtcNetwork: lndLtcNetwork,
@@ -113,21 +107,5 @@ func (n *NetworkHarness) TearDownAll(kill bool, cleanup bool) error {
 	close(n.errorChan)
 	close(n.quit)
 
-	return nil
-}
-
-func installXud() error {
-	log.Println("installing xud...")
-
-	cmd := exec.Command("sh", "./install_xud.sh")
-
-	data, err := cmd.Output()
-	if err != nil {
-		// The program has exited with an exit code != 0
-		log.Printf("xud installation error: %v\n", string(data))
-		return err
-	}
-
-	log.Println(string(data))
 	return nil
 }
