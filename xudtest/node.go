@@ -50,13 +50,18 @@ func (cfg nodeConfig) genArgs() []string {
 	var args []string
 
 	args = append(args, "--initdb=false") // don't populate seed nodes, but we'll need the currencies/pairs.
+	args = append(args, "--loglevel=debug")
+	args = append(args, "--raiden.disable")
+
 	args = append(args, fmt.Sprintf("--xudir=%v", cfg.DataDir))
 	args = append(args, fmt.Sprintf("--p2p.port=%v", cfg.P2PPort))
 	args = append(args, fmt.Sprintf("--rpc.port=%v", cfg.RPCPort))
+
 	args = append(args, fmt.Sprintf("--lndbtc.host=%v", cfg.LndBtcHost))
 	args = append(args, fmt.Sprintf("--lndbtc.port=%v", cfg.LndBtcPort))
 	args = append(args, fmt.Sprintf("--lndbtc.certpath=%v", cfg.LndBtcCertPath))
 	args = append(args, fmt.Sprintf("--lndbtc.macaroonpath=%v", cfg.LndBtcMacPath))
+
 	args = append(args, fmt.Sprintf("--lndltc.host=%v", cfg.LndLtcHost))
 	args = append(args, fmt.Sprintf("--lndltc.port=%v", cfg.LndLtcPort))
 	args = append(args, fmt.Sprintf("--lndltc.certpath=%v", cfg.LndLtcCertPath))
@@ -99,9 +104,8 @@ func (cfg nodeConfig) P2PAddr() string {
 
 func newNode(name string, lndBtcNode *lntest.HarnessNode, lndLtcNode *lntest.HarnessNode) (*HarnessNode, error) {
 	nodeNum := int(atomic.AddInt32(&numActiveNodes, 1))
-	nodeNumStr := strconv.Itoa(nodeNum)
 
-	dataDir, err := filepath.Abs("./xuddatadir-" + nodeNumStr)
+	dataDir, err := filepath.Abs("./xuddatadir-" + name)
 	if err != nil {
 		return nil, err
 	}
