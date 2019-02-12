@@ -18,6 +18,7 @@ import (
 	btcclient "github.com/roasbeef/btcd/rpcclient"
 	"github.com/roasbeef/btcutil"
 	"golang.org/x/net/context"
+	"log"
 	"os/exec"
 	"strings"
 	"testing"
@@ -158,12 +159,12 @@ func (h *harnessTest) RunTestCase(testCase *testCase, net *xudtest.NetworkHarnes
 func TestExchangeUnionDaemon(t *testing.T) {
 	ht := newHarnessTest(t)
 
-	t.Log("installing dependencies")
+	log.Println("installing dependencies...")
 	output, err := installDeps()
 	if err != nil {
 		ht.Fatalf("%v", err)
 	}
-	t.Logf("%v", output)
+	log.Printf("%v", output)
 
 	// LND-LTC network
 
