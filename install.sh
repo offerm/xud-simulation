@@ -35,7 +35,7 @@ else
     export GOPATH=~/go/src/github.com/ExchangeUnion/xud-simulation/go
 
     echo "starting lnd clone..."
-    if ! git clone -b resolver+simnet-ltcd https://github.com/ExchangeUnion/lnd.git  $GOPATH/src/github.com/lightningnetwork/lnd > /dev/null 2>&1; then
+    if ! git clone -b resolver-cmd+simnet-ltcd https://github.com/ExchangeUnion/lnd.git  $GOPATH/src/github.com/lightningnetwork/lnd > /dev/null 2>&1; then
        echo "unable to git clone lnd"
        exit 1
     fi
