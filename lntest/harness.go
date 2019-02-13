@@ -128,7 +128,7 @@ func (f *fakeLogger) Println(args ...interface{})               {}
 // rpc clients capable of communicating with the initial seeder nodes are
 // created. Nodes are initialized with the given extra command line flags, which
 // should be formatted properly - "--arg=value".
-func (n *NetworkHarness) SetUp(lndArgs []string) error {
+func (n *NetworkHarness) SetUp(lndArgs []string, aliceResolverCfg, bobResolverCfg *HashResolverConfig) error {
 	// Swap out grpc's default logger with out fake logger which drops the
 	// statements on the floor.
 	grpclog.SetLogger(&fakeLogger{})
@@ -140,7 +140,7 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		node, err := n.NewNode("Alice", lndArgs, n.chain)
+		node, err := n.NewNode("Alice", lndArgs, n.chain, aliceResolverCfg)
 		if err != nil {
 			errChan <- err
 			return
@@ -149,7 +149,7 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 	}()
 	go func() {
 		defer wg.Done()
-		node, err := n.NewNode("Bob", lndArgs, n.chain)
+		node, err := n.NewNode("Bob", lndArgs, n.chain, bobResolverCfg)
 		if err != nil {
 			errChan <- err
 			return
@@ -264,6 +264,38 @@ out:
 		}
 	}
 
+	// Open a channel
+	// TODO: code refactoring/cleanup
+	_, err := n.OpenChannel(ctxb, n.Alice, n.Bob, 500000000 , 250000000, false)
+	if err != nil {
+		fmt.Printf("err: %v", err)
+		return err
+	}
+
+	if n.BtcMiner != nil {
+		if _, err := n.BtcMiner.Node.Generate(100); err != nil {
+			return err
+		}
+	}
+	if n.LtcMiner != nil {
+		if _, err := n.LtcMiner.Node.Generate(10); err != nil {
+			return err
+		}
+	}
+
+	//channelRes, err := n.Alice.ListChannels(context.Background(), &lnrpc.ListChannelsRequest{})
+	//if err != nil {
+	//	return err
+	//}
+	//fmt.Printf("%v\n", channelRes)
+	//
+	//channelRes, err = n.Bob.ListChannels(context.Background(), &lnrpc.ListChannelsRequest{})
+	//if err != nil {
+	//	return err
+	//}
+	//fmt.Printf("%v\n", channelRes)
+
+
 	return nil
 }
 
@@ -285,8 +317,9 @@ func (n *NetworkHarness) TearDownAll() error {
 // NewNode fully initializes a returns a new HarnessNode bound to the
 // current instance of the network harness. The created node is running, but
 // not yet connected to other nodes within the network.
-func (n *NetworkHarness) NewNode(name string, extraArgs []string, chain string) (*HarnessNode, error) {
-	return n.newNode(name, extraArgs, false, chain)
+func (n *NetworkHarness) NewNode(name string, extraArgs []string, chain string,
+	resolverCfg *HashResolverConfig) (*HarnessNode, error) {
+	return n.newNode(name, extraArgs, false, chain, resolverCfg)
 }
 
 // newNode initializes a new HarnessNode, supporting the ability to initialize a
@@ -294,13 +327,15 @@ func (n *NetworkHarness) NewNode(name string, extraArgs []string, chain string) 
 // can be used immediately. Otherwise, the node will require an additional
 // initialization phase where the wallet is either created or restored.
 func (n *NetworkHarness) newNode(name string, extraArgs []string,
-	hasSeed bool, chain string) (*HarnessNode, error) {
+	hasSeed bool, chain string, resolverCfg *HashResolverConfig) (*HarnessNode, error) {
 	node, err := newNode(nodeConfig{
 		Name:      name,
 		Chain:     chain,
 		HasSeed:   hasSeed,
 		RPCConfig: &n.rpcConfig,
 		ExtraArgs: extraArgs,
+		resolverCfg: resolverCfg,
+
 	})
 	if err != nil {
 		return nil, err

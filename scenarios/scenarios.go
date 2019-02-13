@@ -90,7 +90,7 @@ func Connect(ctx context.Context, srcNode, destNode *xudtest.HarnessNode) error 
 }
 
 func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.HarnessNode,
-	pairId string, orderId string) (*xudrpc.Order, error) {
+ req *xudrpc.PlaceOrderRequest) (*xudrpc.Order, error) {
 	// 	Fetch nodes current order book state.
 	prevSrcNodeCount, err := getOrdersCount(ctx, srcNode)
 	if err != nil {
@@ -99,15 +99,6 @@ func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.Harn
 	prevDestNodeCount, err := getOrdersCount(ctx, destNode)
 	if err != nil {
 		return nil, err
-	}
-
-	// Initialize the order.
-	req := &xudrpc.PlaceOrderRequest{
-		Price:    10,
-		Quantity: 10,
-		PairId:   pairId,
-		OrderId:  orderId,
-		Side:     xudrpc.OrderSide_BUY,
 	}
 
 	// Subscribe to added orders on destNode.
@@ -304,6 +295,15 @@ func RemoveOrderAndInvalidate(ctx context.Context, srcNode, destNode *xudtest.Ha
 	}
 
 	return nil
+}
+
+// TODO: add validations
+func PlaceOrderAndSwap(ctx context.Context, srcNode *xudtest.HarnessNode, req *xudrpc.PlaceOrderRequest) (*xudrpc.PlaceOrderResponse, error) {
+	res, err := srcNode.Client.PlaceOrderSync(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func getOrdersCount(ctx context.Context, n *xudtest.HarnessNode) (*xudrpc.OrdersCount, error) {

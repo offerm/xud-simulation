@@ -19,7 +19,9 @@ import (
 	"github.com/roasbeef/btcutil"
 	"golang.org/x/net/context"
 	"log"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -61,6 +63,10 @@ var testsCases = []*testCase{
 		name: "order broadcast and invalidation",
 		test: testOrderBroadcastAndInvalidation,
 	},
+	{
+		name: "order matching and swap",
+		test: testOrderMatchingAndSwap,
+	},
 }
 
 func testConnectivity(net *xudtest.NetworkHarness, ht *harnessTest) {
@@ -100,13 +106,57 @@ func testNetworkInit(net *xudtest.NetworkHarness, ht *harnessTest) {
 	scenarios.Connect(ctx, net.Alice, net.Bob)
 }
 
+func testOrderMatchingAndSwap(net *xudtest.NetworkHarness, ht *harnessTest) {
+	ctx, _ := context.WithTimeout(
+		context.Background(),
+		time.Duration(500*time.Second),
+	)
+
+	// Placing an order for Alice
+	req := &xudrpc.PlaceOrderRequest{
+		Price:    10,
+		Quantity: 0.00000001,
+		PairId:   "LTC/BTC",
+		OrderId:  "random_order_id",
+		Side:     xudrpc.OrderSide_BUY,
+	}
+
+	_, err := scenarios.PlaceOrderAndBroadcast(ctx, net.Alice, net.Bob, req)
+	if err != nil {
+		ht.Fatalf("%v", err)
+	}
+
+	// Placing a matching order for Bob
+	req = &xudrpc.PlaceOrderRequest{
+		Price:    req.Price,
+		Quantity: req.Quantity,
+		PairId:   req.PairId,
+		OrderId:  req.OrderId,
+		Side:     xudrpc.OrderSide_SELL,
+	}
+
+	_, err = scenarios.PlaceOrderAndSwap(ctx, net.Bob, req)
+	if err != nil {
+		ht.Fatalf("%v", err)
+	}
+
+}
+
 func testOrderBroadcastAndInvalidation(net *xudtest.NetworkHarness, ht *harnessTest) {
 	ctx, _ := context.WithTimeout(
 		context.Background(),
 		time.Duration(5*time.Second),
 	)
 
-	order, err := scenarios.PlaceOrderAndBroadcast(ctx, net.Alice, net.Bob, "LTC/BTC", "random_order_id")
+	req := &xudrpc.PlaceOrderRequest{
+		Price:    10,
+		Quantity: 10,
+		PairId:   "LTC/BTC",
+		OrderId:  "random_order_id",
+		Side:     xudrpc.OrderSide_BUY,
+	}
+
+	order, err := scenarios.PlaceOrderAndBroadcast(ctx, net.Alice, net.Bob, req)
 	if err != nil {
 		ht.Fatalf("%v", err)
 	}
@@ -158,13 +208,29 @@ func (h *harnessTest) RunTestCase(testCase *testCase, net *xudtest.NetworkHarnes
 
 func TestExchangeUnionDaemon(t *testing.T) {
 	ht := newHarnessTest(t)
+	cfg := loadConfig()
 
 	log.Println("installing dependencies...")
 	output, err := installDeps()
 	if err != nil {
 		ht.Fatalf("%v", err)
 	}
-	log.Printf("%v", output)
+	log.Printf("\n%v", output)
+
+	dir, err := os.Getwd()
+
+
+	// TODO: don't use the temp hardcoded values approach
+	aliceResolverCfg := &lntest.HashResolverConfig{
+		ServerAddr: "localhost:30002",
+		TLS:        true,
+		CaFile:     filepath.Join(dir, "xuddatadir-Alice", "tls.cert"),
+	}
+	bobResolverCfg := &lntest.HashResolverConfig{
+		ServerAddr: "localhost:30001",
+		TLS:        true,
+		CaFile:     filepath.Join(dir, "xuddatadir-Bob", "tls.cert"),
+	}
 
 	// LND-LTC network
 
@@ -228,7 +294,7 @@ func TestExchangeUnionDaemon(t *testing.T) {
 	}()
 
 	t.Logf("lnd-ltc: launching network...")
-	if err = lndLtcNetworkHarness.SetUp(nil); err != nil {
+	if err = lndLtcNetworkHarness.SetUp(nil, aliceResolverCfg, bobResolverCfg); err != nil {
 		ht.Fatalf("lnd-ltc: unable to set up test network: %v", err)
 	}
 
@@ -310,7 +376,7 @@ func TestExchangeUnionDaemon(t *testing.T) {
 	}()
 
 	t.Logf("lnd-btc: launching network...")
-	if err = lndBtcNetworkHarness.SetUp(nil); err != nil {
+	if err = lndBtcNetworkHarness.SetUp(nil, aliceResolverCfg, bobResolverCfg); err != nil {
 		ht.Fatalf("lnd-btc: unable to set up test network: %v", err)
 	}
 
@@ -321,7 +387,7 @@ func TestExchangeUnionDaemon(t *testing.T) {
 		ht.Fatalf("unable to create xud network harness: %v", err)
 	}
 	defer func() {
-		if err := xudHarness.TearDownAll(true, true); err != nil {
+		if err := xudHarness.TearDownAll(cfg.xudKill, cfg.xudCleanup); err != nil {
 			ht.Fatalf("cannot tear down xud network harness: %v", err)
 		} else {
 			t.Logf("xud network harness teared down")
