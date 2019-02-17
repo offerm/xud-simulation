@@ -1,0 +1,30 @@
+module github.com/ExchangeUnion/xud-simulation
+
+require (
+	github.com/btcsuite/btcd v0.0.0-20181013004428-67e573d211ac
+	github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f
+	github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd
+	github.com/btcsuite/golangcrypto v0.0.0-20150304025918-53f62d9b43e8
+	github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792
+	github.com/coreos/bbolt v0.0.0-20180223184059-4f5275f4ebbf
+	github.com/go-errors/errors v1.0.1
+	github.com/golang/protobuf v0.0.0-20180202184318-bbd03ef6da3a
+	github.com/grpc-ecosystem/grpc-gateway v0.0.0-20170724004829-f2862b476edc
+	github.com/juju/loggo v0.0.0-20180524022052-584905176618
+	github.com/lightningnetwork/lnd v0.4.2-beta
+	github.com/ltcsuite/ltcd v0.0.0-20190215003858-73a737535028
+	github.com/ltcsuite/ltcutil v0.0.0-20181217130922-17f3b04680b6
+	github.com/roasbeef/btcd v0.0.0-20180418012700-a03db407e40d
+	github.com/roasbeef/btcutil v0.0.0-20180406014609-dfb640c57141
+	github.com/roasbeef/btcwallet v0.0.0-20180426084903-ccd48bb4720f
+	github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af
+	golang.org/x/crypto v0.0.0-20180222182404-49796115aa4b
+	golang.org/x/net v0.0.0-20180311174755-ae89d30ce0c6
+	golang.org/x/sys v0.0.0-20181031143558-9b800f95dbbc
+	golang.org/x/text v0.3.0
+	google.golang.org/genproto v0.0.0-20180306020942-df60624c1e9b
+	google.golang.org/grpc v1.5.2
+	gopkg.in/errgo.v1 v1.0.0
+	gopkg.in/macaroon-bakery.v2 v2.0.1
+	gopkg.in/macaroon.v2 v2.0.0
+)

@@ -4,6 +4,9 @@ xud network simulation framework and integration tests.
 
 ## Installation & Usage
 
+This project uses [go modules](https://github.com/golang/go/wiki/Modules) 
+    to manage dependencies.
+    
 Requirements:
 
 * Golang version >= 1.11
@@ -11,15 +14,13 @@ Requirements:
 Installation:
 
 ```bash
-go get -u github.com/golang/dep/cmd/dep
 go get -d github.com/ExchangeUnion/xud-simulation
-dep ensure
 ```
 
 Usage:
 
 ```bash
-go test -v
+GO111MODULE=on go test -v
 ```
 
 ## Network Scenarios Tests
