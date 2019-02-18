@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ExchangeUnion/xud-simulation/xudrpc"
 	"github.com/ExchangeUnion/xud-simulation/xudtest"
+	"reflect"
 )
 
 func AddPair(ctx context.Context, n *xudtest.HarnessNode, baseCurrency string, quoteCurrency string,
@@ -121,8 +122,7 @@ func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.Harn
 		return nil, errors.New("PlaceOrderSync: received order local id as global id")
 	}
 
-	if val, ok := res.RemainingOrder.OwnOrPeer.(*xudrpc.Order_LocalId);
-		!ok || val.LocalId != req.OrderId {
+	if val, ok := res.RemainingOrder.OwnOrPeer.(*xudrpc.Order_LocalId); !ok || val.LocalId != req.OrderId {
 		return nil, errors.New("PlaceOrderSync: invalid order local id")
 	}
 
@@ -137,8 +137,7 @@ func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.Harn
 		return nil, errors.New("received order with local id as global id")
 	}
 
-	if val, ok := peerOrder.OwnOrPeer.(*xudrpc.Order_PeerPubKey);
-		!ok || val.PeerPubKey != srcNode.PubKey() {
+	if val, ok := peerOrder.OwnOrPeer.(*xudrpc.Order_PeerPubKey); !ok || val.PeerPubKey != srcNode.PubKey() {
 		return nil, errors.New("received order with unexpected peerPubKey")
 	}
 
@@ -230,13 +229,53 @@ func RemoveOrderAndInvalidate(ctx context.Context, srcNode, destNode *xudtest.Ha
 	return nil
 }
 
-// TODO: add validations
-func PlaceOrderAndSwap(ctx context.Context, srcNode *xudtest.HarnessNode, req *xudrpc.PlaceOrderRequest) (*xudrpc.PlaceOrderResponse, error) {
+func PlaceOrderAndSwap(ctx context.Context, srcNode, destNode *xudtest.HarnessNode,
+	req *xudrpc.PlaceOrderRequest) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	destNodeSwapChan := subscribeSwaps(ctx, destNode, false)
+	srcNodeSwapChan := subscribeSwaps(ctx, srcNode, true)
+
+	// Place the order on srcNode and verify the result.
 	res, err := srcNode.Client.PlaceOrderSync(ctx, req)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return res, nil
+
+	if len(res.InternalMatches) != 0 {
+		return errors.New("PlaceOrderSync: unexpected internal matches")
+	}
+
+	if res.RemainingOrder != nil {
+		return errors.New("PlaceOrderSync: unexpected remaining order")
+	}
+
+	if len(res.SwapSuccesses) != 1 {
+		return errors.New("PlaceOrderSync: unexpected swap successes")
+	}
+
+	// Retrieve and verify the swap event on destNode.
+	makerEvent := <-destNodeSwapChan
+	if makerEvent.err != nil {
+		return makerEvent.err
+	}
+	makerSwap := makerEvent.swap
+
+	takerEvent := <-srcNodeSwapChan
+	if takerEvent.err != nil {
+		return takerEvent.err
+	}
+	takerSwap := takerEvent.swap
+
+	if !reflect.DeepEqual(takerEvent.swap, res.SwapSuccesses[0]) {
+		return errors.New("non-matching taker swap event and PlaceOrder response")
+	}
+
+	fmt.Printf("### %v\n\n", makerSwap)
+	fmt.Printf("### %v\n\n", takerSwap)
+
+	return nil
 }
 
 type subscribeAddedOrderResult struct {
@@ -244,15 +283,15 @@ type subscribeAddedOrderResult struct {
 	err   error
 }
 
-func subscribeAddedOrder(ctx context.Context, node *xudtest.HarnessNode) (<-chan *subscribeAddedOrderResult) {
-	// Make the output channels
+func subscribeAddedOrder(ctx context.Context, node *xudtest.HarnessNode) <-chan *subscribeAddedOrderResult {
 	out := make(chan *subscribeAddedOrderResult, 1)
 
 	// Synchronously subscribe to the node removed orders.
 	stream, err := node.Client.SubscribeAddedOrders(ctx, &xudrpc.SubscribeAddedOrdersRequest{})
 	if err != nil {
 		out <- &subscribeAddedOrderResult{nil, fmt.Errorf("SubscribeAddedOrders: %v", err)}
-		return out	}
+		return out
+	}
 
 	go func() {
 		recvChan := make(chan *xudrpc.Order)
@@ -287,11 +326,10 @@ func subscribeAddedOrder(ctx context.Context, node *xudtest.HarnessNode) (<-chan
 
 type subscribeOrderRemovalResult struct {
 	orderRemoval *xudrpc.OrderRemoval
-	err   error
+	err          error
 }
 
-func subscribeOrderRemoval(ctx context.Context, node *xudtest.HarnessNode) (<-chan *subscribeOrderRemovalResult) {
-	// Make the output channels
+func subscribeOrderRemoval(ctx context.Context, node *xudtest.HarnessNode) <-chan *subscribeOrderRemovalResult {
 	out := make(chan *subscribeOrderRemovalResult, 1)
 
 	// Synchronously subscribe to the node added orders.
@@ -326,6 +364,44 @@ func subscribeOrderRemoval(ctx context.Context, node *xudtest.HarnessNode) (<-ch
 			out <- &subscribeOrderRemovalResult{nil, err}
 		case orderRemoval := <-recvChan:
 			out <- &subscribeOrderRemovalResult{orderRemoval, nil}
+		}
+	}()
+
+	return out
+}
+
+type subscribeSwapsEvent struct {
+	swap *xudrpc.SwapSuccess
+	err  error
+}
+
+func subscribeSwaps(ctx context.Context, node *xudtest.HarnessNode, includeTaker bool) <-chan *subscribeSwapsEvent {
+	out := make(chan *subscribeSwapsEvent, 1)
+
+	// Subscribe before starting a non-blocking goroutine.
+	req := xudrpc.SubscribeSwapsRequest{IncludeTaker: includeTaker}
+	stream, err := node.Client.SubscribeSwaps(ctx, &req)
+	if err != nil {
+		out <- &subscribeSwapsEvent{nil, fmt.Errorf("SubscribeSwaps: %v", err)}
+		return out
+	}
+
+	go func() {
+		go func() {
+			for {
+				swap, err := stream.Recv()
+				out <- &subscribeSwapsEvent{swap, err}
+				if err != nil {
+					break
+				}
+			}
+		}()
+
+		select {
+		case <-ctx.Done():
+			if e := ctx.Err(); e != context.Canceled {
+				out <- &subscribeSwapsEvent{nil, errors.New("timeout reached before order was received")}
+			}
 		}
 	}()
 

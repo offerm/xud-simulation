@@ -109,7 +109,7 @@ func testNetworkInit(net *xudtest.NetworkHarness, ht *harnessTest) {
 func testOrderMatchingAndSwap(net *xudtest.NetworkHarness, ht *harnessTest) {
 	ctx, _ := context.WithTimeout(
 		context.Background(),
-		time.Duration(500*time.Second),
+		time.Duration(5*time.Second),
 	)
 
 	// Placing an order for Alice
@@ -135,7 +135,7 @@ func testOrderMatchingAndSwap(net *xudtest.NetworkHarness, ht *harnessTest) {
 		Side:     xudrpc.OrderSide_SELL,
 	}
 
-	_, err = scenarios.PlaceOrderAndSwap(ctx, net.Bob, req)
+	err = scenarios.PlaceOrderAndSwap(ctx, net.Bob, net.Alice, req)
 	if err != nil {
 		ht.Fatalf("%v", err)
 	}
@@ -218,7 +218,6 @@ func TestExchangeUnionDaemon(t *testing.T) {
 	log.Printf("\n%v", output)
 
 	dir, err := os.Getwd()
-
 
 	// TODO: don't use the temp hardcoded values approach
 	aliceResolverCfg := &lntest.HashResolverConfig{
