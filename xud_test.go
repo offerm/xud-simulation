@@ -362,7 +362,7 @@ func TestExchangeUnionDaemon(t *testing.T) {
 		ht.Fatalf("unable to create xud network harness: %v", err)
 	}
 	defer func() {
-		if err := xudHarness.TearDownAll(cfg.xudKill, cfg.xudCleanup); err != nil {
+		if err := xudHarness.TearDownAll(cfg.XudKill, cfg.XudCleanup); err != nil {
 			ht.Fatalf("cannot tear down xud network harness: %v", err)
 		} else {
 			t.Logf("xud network harness teared down")
@@ -400,10 +400,7 @@ func TestExchangeUnionDaemon(t *testing.T) {
 	initialStates := make(map[int]*xudrpc.GetInfoResponse)
 	for i, testCase := range testsCases {
 		success := t.Run(testCase.name, func(t1 *testing.T) {
-			ctx, _ := context.WithTimeout(
-				context.Background(),
-				time.Duration(5*time.Second),
-			)
+			ctx, _ := context.WithTimeout(context.Background(), time.Duration(cfg.Timeout))
 			ht := newHarnessTest(t1, ctx)
 			ht.RunTestCase(testCase, xudHarness)
 		})
@@ -429,7 +426,6 @@ func TestExchangeUnionDaemon(t *testing.T) {
 				ht.assert.NoError(err)
 				initialState, ok := initialStates[num]
 				ht.assert.True(ok)
-
 				ht.assert.Equal(res, initialState, "test should not leave a node in altered state")
 			}
 		}
