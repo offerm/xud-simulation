@@ -57,7 +57,6 @@ type harnessTest struct {
 // testing.T instance.
 func newHarnessTest(t *testing.T, ctx context.Context) *harnessTest {
 	assert := require.New(t)
-
 	return &harnessTest{
 		t:        t,
 		testCase: nil,
@@ -426,7 +425,13 @@ func TestExchangeUnionDaemon(t *testing.T) {
 				ht.assert.NoError(err)
 				initialState, ok := initialStates[num]
 				ht.assert.True(ok)
-				ht.assert.Equal(res, initialState, "test should not leave a node in altered state")
+
+				msg := "test should not leave a node in altered state"
+				ht.assert.Equal(initialState.Version, res.Version, msg)
+				ht.assert.Equal(initialState.NodePubKey, res.NodePubKey, msg)
+				ht.assert.Equal(initialState.NumPeers, res.NumPeers, msg)
+				ht.assert.Equal(initialState.NumPairs, res.NumPairs, msg)
+				ht.assert.Equal(initialState.Orders, res.Orders, msg)
 			}
 		}
 	}
