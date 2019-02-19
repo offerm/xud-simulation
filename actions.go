@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type actions struct {}
+type actions struct{}
 
 func (a *actions) addPair(assert *require.Assertions, ctx context.Context, node *xudtest.HarnessNode, baseCurrency string, quoteCurrency string,
 	swapClient xudrpc.AddCurrencyRequest_SwapClient) {
@@ -74,7 +74,7 @@ func (*actions) placeOrderAndBroadcast(assert *require.Assertions, ctx context.C
 	assert.NoError(err)
 
 	// Subscribe to added orders on destNode
-	destNodeAddedOrderChan := subscribeAddedOrder(ctx, destNode)
+	destNodeAddedOrderChan := subscribeAddedOrders(ctx, destNode)
 
 	// Place the order on srcNode and verify the result.
 	res, err := srcNode.Client.PlaceOrderSync(ctx, req)
@@ -182,92 +182,76 @@ func (*actions) placeOrderAndSwap(assert *require.Assertions, ctx context.Contex
 	fmt.Printf("### %v\n\n", eMaker.swap)
 }
 
-type subscribeAddedOrderResult struct {
+type subscribeAddedOrdersEvent struct {
 	order *xudrpc.Order
 	err   error
 }
 
-func subscribeAddedOrder(ctx context.Context, node *xudtest.HarnessNode) <-chan *subscribeAddedOrderResult {
-	out := make(chan *subscribeAddedOrderResult, 1)
+func subscribeAddedOrders(ctx context.Context, node *xudtest.HarnessNode) <-chan *subscribeAddedOrdersEvent {
+	out := make(chan *subscribeAddedOrdersEvent, 1)
 
-	// Synchronously subscribe to the node removed orders.
-	stream, err := node.Client.SubscribeAddedOrders(ctx, &xudrpc.SubscribeAddedOrdersRequest{})
+	// Subscribe before starting a non-blocking routine.
+	req := xudrpc.SubscribeAddedOrdersRequest{}
+	stream, err := node.Client.SubscribeAddedOrders(ctx, &req)
 	if err != nil {
-		out <- &subscribeAddedOrderResult{nil, fmt.Errorf("SubscribeAddedOrders: %v", err)}
+		out <- &subscribeAddedOrdersEvent{nil, err}
 		return out
 	}
 
 	go func() {
-		recvChan := make(chan *xudrpc.Order)
-		errChan := make(chan error)
 		go func() {
-			// Consume the subscription event.
-			// This waits until the node notifies us
-			// that it received an order.
-			recvOrder, err := stream.Recv()
-			if err != nil {
-				errChan <- err
-				return
+			for {
+				order, err := stream.Recv()
+				out <- &subscribeAddedOrdersEvent{order, err}
+				if err != nil {
+					break
+				}
 			}
-
-			// Order received.
-			recvChan <- recvOrder
 		}()
 
-		// Verify that the order was received.
 		select {
 		case <-ctx.Done():
-			out <- &subscribeAddedOrderResult{nil, errors.New("timeout reached before order was received")}
-		case err := <-errChan:
-			out <- &subscribeAddedOrderResult{nil, err}
-		case peerOrder := <-recvChan:
-			out <- &subscribeAddedOrderResult{peerOrder, nil}
+			if e := ctx.Err(); e != context.Canceled {
+				out <- &subscribeAddedOrdersEvent{nil, errors.New("timeout reached before event was received")}
+			}
 		}
 	}()
 
 	return out
 }
 
-type subscribeOrderRemovalResult struct {
+type subscribeRemovedOrdersEvent struct {
 	orderRemoval *xudrpc.OrderRemoval
 	err          error
 }
 
-func subscribeRemovedOrders(ctx context.Context, node *xudtest.HarnessNode) <-chan *subscribeOrderRemovalResult {
-	out := make(chan *subscribeOrderRemovalResult, 1)
+func subscribeRemovedOrders(ctx context.Context, node *xudtest.HarnessNode) <-chan *subscribeRemovedOrdersEvent {
+	out := make(chan *subscribeRemovedOrdersEvent, 1)
 
-	// Synchronously subscribe to the node added orders.
-	stream, err := node.Client.SubscribeRemovedOrders(ctx, &xudrpc.SubscribeRemovedOrdersRequest{})
+	// Subscribe before starting a non-blocking routine.
+	req := xudrpc.SubscribeRemovedOrdersRequest{}
+	stream, err := node.Client.SubscribeRemovedOrders(ctx, &req)
 	if err != nil {
-		out <- &subscribeOrderRemovalResult{nil, fmt.Errorf("SubscribeRemovedOrders: %v", err)}
+		out <- &subscribeRemovedOrdersEvent{nil, err}
 		return out
 	}
 
 	go func() {
-		recvChan := make(chan *xudrpc.OrderRemoval)
-		errChan := make(chan error)
 		go func() {
-			// Consume the subscription event.
-			// This waits until the node notifies us
-			// that it received an order.
-			recvOrder, err := stream.Recv()
-			if err != nil {
-				errChan <- err
-				return
+			for {
+				orderRemoval, err := stream.Recv()
+				out <- &subscribeRemovedOrdersEvent{orderRemoval, err}
+				if err != nil {
+					break
+				}
 			}
-
-			// Order received.
-			recvChan <- recvOrder
 		}()
 
-		// Verify that order invalidation was received.
 		select {
 		case <-ctx.Done():
-			out <- &subscribeOrderRemovalResult{nil, errors.New("timeout reached before order was received")}
-		case err := <-errChan:
-			out <- &subscribeOrderRemovalResult{nil, err}
-		case orderRemoval := <-recvChan:
-			out <- &subscribeOrderRemovalResult{orderRemoval, nil}
+			if e := ctx.Err(); e != context.Canceled {
+				out <- &subscribeRemovedOrdersEvent{nil, errors.New("timeout reached before event was received")}
+			}
 		}
 	}()
 
@@ -282,11 +266,11 @@ type subscribeSwapsEvent struct {
 func subscribeSwaps(ctx context.Context, node *xudtest.HarnessNode, includeTaker bool) <-chan *subscribeSwapsEvent {
 	out := make(chan *subscribeSwapsEvent, 1)
 
-	// Subscribe before starting a non-blocking goroutine.
+	// Subscribe before starting a non-blocking routine.
 	req := xudrpc.SubscribeSwapsRequest{IncludeTaker: includeTaker}
 	stream, err := node.Client.SubscribeSwaps(ctx, &req)
 	if err != nil {
-		out <- &subscribeSwapsEvent{nil, fmt.Errorf("SubscribeSwaps: %v", err)}
+		out <- &subscribeSwapsEvent{nil, err}
 		return out
 	}
 
@@ -304,7 +288,7 @@ func subscribeSwaps(ctx context.Context, node *xudtest.HarnessNode, includeTaker
 		select {
 		case <-ctx.Done():
 			if e := ctx.Err(); e != context.Canceled {
-				out <- &subscribeSwapsEvent{nil, errors.New("timeout reached before order was received")}
+				out <- &subscribeSwapsEvent{nil, errors.New("timeout reached before event was received")}
 			}
 		}
 	}()
