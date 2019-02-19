@@ -49,7 +49,7 @@ type harnessTest struct {
 	// act provides collection of predefined actions to be used in the test scenario.
 	act *actions
 
-	// ctx is the context for the entire test scenario.
+	// ctx is the context for the test scenario.
 	ctx context.Context
 }
 
@@ -416,13 +416,13 @@ func TestExchangeUnionDaemon(t *testing.T) {
 		// so that tests won't be affected by preceding ones.
 		if i == 0 {
 			for num, node := range xudHarness.ActiveNodes {
-				res, err := node.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
+				res, err := node.Client.GetInfo(ht.ctx, &xudrpc.GetInfoRequest{})
 				ht.assert.NoError(err)
 				initialStates[num] = res
 			}
 		} else {
 			for num, node := range xudHarness.ActiveNodes {
-				res, err := node.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
+				res, err := node.Client.GetInfo(ht.ctx, &xudrpc.GetInfoRequest{})
 				ht.assert.NoError(err)
 				initialState, ok := initialStates[num]
 				ht.assert.True(ok)
