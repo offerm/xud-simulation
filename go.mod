@@ -18,6 +18,7 @@ require (
 	github.com/roasbeef/btcutil v0.0.0-20180406014609-dfb640c57141
 	github.com/roasbeef/btcwallet v0.0.0-20180426084903-ccd48bb4720f
 	github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af
+	github.com/stretchr/testify v1.3.0
 	golang.org/x/crypto v0.0.0-20180222182404-49796115aa4b
 	golang.org/x/net v0.0.0-20180311174755-ae89d30ce0c6
 	golang.org/x/sys v0.0.0-20181031143558-9b800f95dbbc

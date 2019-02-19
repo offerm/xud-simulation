@@ -6,48 +6,38 @@ import (
 	"fmt"
 	"github.com/ExchangeUnion/xud-simulation/xudrpc"
 	"github.com/ExchangeUnion/xud-simulation/xudtest"
-	"reflect"
+	"github.com/stretchr/testify/require"
 )
 
-func AddPair(ctx context.Context, n *xudtest.HarnessNode, baseCurrency string, quoteCurrency string,
-	swapClient xudrpc.AddCurrencyRequest_SwapClient) error {
+func AddPair(assert *require.Assertions, ctx context.Context, node *xudtest.HarnessNode, baseCurrency string, quoteCurrency string,
+	swapClient xudrpc.AddCurrencyRequest_SwapClient) {
 	// Check the current number of pairs.
-	resInfo, err := n.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
-	if err != nil {
-		return fmt.Errorf("RPC GetInfo failure: %v", err)
-	}
+	resInfo, err := node.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
+	assert.NoError(err)
 
 	prevNumPairs := resInfo.NumPairs
 
 	// Add currencies.
 	reqAddCurr := &xudrpc.AddCurrencyRequest{Currency: baseCurrency, SwapClient: swapClient}
-	if _, err := n.Client.AddCurrency(ctx, reqAddCurr); err != nil {
-		return fmt.Errorf("RPC AddCurrency failure: %v", err)
-	}
+	_, err = node.Client.AddCurrency(ctx, reqAddCurr)
+	assert.NoError(err)
+
 	reqAddCurr = &xudrpc.AddCurrencyRequest{Currency: quoteCurrency, SwapClient: swapClient}
-	if _, err := n.Client.AddCurrency(ctx, reqAddCurr); err != nil {
-		return fmt.Errorf("RPC AddCurrency failure: %v", err)
-	}
+	_, err = node.Client.AddCurrency(ctx, reqAddCurr)
+	assert.NoError(err)
 
 	// Add pair.
 	reqAddPair := &xudrpc.AddPairRequest{BaseCurrency: baseCurrency, QuoteCurrency: quoteCurrency}
-	if _, err := n.Client.AddPair(ctx, reqAddPair); err != nil {
-		return fmt.Errorf("RPC AddPair failure: %v", err)
-	}
+	_, err = node.Client.AddPair(ctx, reqAddPair)
+	assert.NoError(err)
 
 	// Verify that pair was added.
-	resGetInfo, err := n.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
-	if err != nil {
-		return fmt.Errorf("RPC GetInfo failure: %v", err)
-	}
-	if resGetInfo.NumPairs != prevNumPairs+1 {
-		return fmt.Errorf("RPC GetInfo: added pair (%v/%v) is missing", baseCurrency, quoteCurrency)
-	}
-
-	return nil
+	resGetInfo, err := node.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
+	assert.NoError(err)
+	assert.Equal(resGetInfo.NumPairs, prevNumPairs+1)
 }
 
-func Connect(ctx context.Context, srcNode, destNode *xudtest.HarnessNode) error {
+func Connect(assert *require.Assertions, ctx context.Context, srcNode, destNode *xudtest.HarnessNode) {
 	destNodeUri := fmt.Sprintf("%v@%v",
 		destNode.PubKey(),
 		destNode.Cfg.P2PAddr(),
@@ -56,181 +46,112 @@ func Connect(ctx context.Context, srcNode, destNode *xudtest.HarnessNode) error 
 	// Connect srcNode to destNode.
 	reqConn := &xudrpc.ConnectRequest{NodeUri: destNodeUri}
 	_, err := srcNode.Client.Connect(ctx, reqConn)
-	if err != nil {
-		return fmt.Errorf("RPC Connect failure: %v", err)
-	}
+	assert.NoError(err)
 
-	// Assert srcNode's peer (destNode).
+	// Verify srcNode's peer (destNode).
 	resListPeers, err := srcNode.Client.ListPeers(ctx, &xudrpc.ListPeersRequest{})
-	if err != nil {
-		return fmt.Errorf("RPC ListPeers failure: %v", err)
-	}
-	if len(resListPeers.Peers) != 1 {
-		return fmt.Errorf("RPC ListPeers: peers are missing")
-	}
-	if err := assertPeersNum(resListPeers.Peers, 1); err != nil {
-		return err
-	}
-	if err := assertPeerInfo(resListPeers.Peers[0], destNode); err != nil {
-		return err
-	}
+	assert.NoError(err)
+	assert.Len(resListPeers.Peers, 1)
+	assert.Equal(resListPeers.Peers[0].NodePubKey, destNode.PubKey())
+	assert.Equal(resListPeers.Peers[0].LndBtcPubKey, destNode.LndBtcNode.PubKeyStr)
+	assert.Equal(resListPeers.Peers[0].LndLtcPubKey, destNode.LndLtcNode.PubKeyStr)
 
-	// Assert destNode's peer (srcNode).
+	// Verify destNode's peer (srcNode).
 	resListPeers, err = destNode.Client.ListPeers(context.Background(), &xudrpc.ListPeersRequest{})
-	if err != nil {
-		return fmt.Errorf("RPC ListPeers failure: %v", err)
-	}
-	if err := assertPeersNum(resListPeers.Peers, 1); err != nil {
-		return err
-	}
-	if err := assertPeerInfo(resListPeers.Peers[0], srcNode); err != nil {
-		return err
-	}
-
-	return nil
+	assert.NoError(err)
+	assert.Len(resListPeers.Peers, 1)
+	assert.Equal(resListPeers.Peers[0].NodePubKey, srcNode.PubKey())
+	assert.Equal(resListPeers.Peers[0].LndBtcPubKey, srcNode.LndBtcNode.PubKeyStr)
+	assert.Equal(resListPeers.Peers[0].LndLtcPubKey, srcNode.LndLtcNode.PubKeyStr)
 }
 
-func PlaceOrderAndBroadcast(ctx context.Context, srcNode, destNode *xudtest.HarnessNode,
-	req *xudrpc.PlaceOrderRequest) (*xudrpc.Order, error) {
+func PlaceOrderAndBroadcast(assert *require.Assertions, ctx context.Context, srcNode, destNode *xudtest.HarnessNode,
+	req *xudrpc.PlaceOrderRequest) *xudrpc.Order {
 	// 	Fetch nodes current order book state.
 	prevSrcNodeCount, prevDestNodeCount, err := getOrdersCount(ctx, srcNode, destNode)
-	if err != nil {
-		return nil, err
-	}
+	assert.NoError(err)
 
 	// Subscribe to added orders on destNode
 	destNodeAddedOrderChan := subscribeAddedOrder(ctx, destNode)
 
 	// Place the order on srcNode and verify the result.
 	res, err := srcNode.Client.PlaceOrderSync(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("PlaceOrderSync: %v", err)
-	}
-	if len(res.InternalMatches) != 0 {
-		return nil, errors.New("PlaceOrderSync: unexpected internal matches")
-	}
+	assert.NoError(err)
 
-	if len(res.SwapSuccesses) != 0 {
-		return nil, fmt.Errorf("PlaceOrderSync: unexpected swap successes")
-	}
+	// Verify the response.
+	assert.Len(res.InternalMatches, 0)
+	assert.Len(res.SwapSuccesses, 0)
+	assert.NotNil(res.RemainingOrder)
+	assert.NotEqual(res.RemainingOrder.Id, req.OrderId)
+	assert.IsType(new(xudrpc.Order_LocalId), res.RemainingOrder.OwnOrPeer)
+	assert.Equal(res.RemainingOrder.OwnOrPeer.(*xudrpc.Order_LocalId).LocalId, req.OrderId)
 
-	if res.RemainingOrder == nil {
-		return nil, errors.New("PlaceOrderSync: expected remaining order missing")
-	}
+	// Retrieve and verify the added order event on destNode.
+	e := <-destNodeAddedOrderChan
+	assert.NoError(e.err)
+	assert.NotNil(e.order)
+	peerOrder := e.order
 
-	if res.RemainingOrder.Id == req.OrderId {
-		return nil, errors.New("PlaceOrderSync: received order local id as global id")
-	}
+	// Verify the peer order.
+	assert.NotEqual(peerOrder.Id, req.OrderId) 	// Local id should not equal the global id.
+	assert.Equal(peerOrder.Price, req.Price)
+	assert.Equal(peerOrder.PairId, req.PairId)
+	assert.Equal(peerOrder.Quantity, req.Quantity)
+	assert.Equal(peerOrder.Side, req.Side)
+	assert.False(peerOrder.IsOwnOrder)
+	assert.Equal(peerOrder.Id, res.RemainingOrder.Id)
+	assert.IsType(new(xudrpc.Order_PeerPubKey), peerOrder.OwnOrPeer)
+	assert.Equal(peerOrder.OwnOrPeer.(*xudrpc.Order_PeerPubKey).PeerPubKey, srcNode.PubKey())
 
-	if val, ok := res.RemainingOrder.OwnOrPeer.(*xudrpc.Order_LocalId); !ok || val.LocalId != req.OrderId {
-		return nil, errors.New("PlaceOrderSync: invalid order local id")
-	}
-
-	// Retrieve and verify the added order on destNode.
-	r := <-destNodeAddedOrderChan
-	if r.err != nil {
-		return nil, r.err
-	}
-	peerOrder := r.order
-
-	if peerOrder.Id == req.OrderId {
-		return nil, errors.New("received order with local id as global id")
-	}
-
-	if val, ok := peerOrder.OwnOrPeer.(*xudrpc.Order_PeerPubKey); !ok || val.PeerPubKey != srcNode.PubKey() {
-		return nil, errors.New("received order with unexpected peerPubKey")
-	}
-
-	if peerOrder.Price != req.Price ||
-		peerOrder.PairId != req.PairId ||
-		peerOrder.Quantity != req.Quantity ||
-		peerOrder.Side != req.Side ||
-		peerOrder.IsOwnOrder == true {
-		return nil, errors.New("received unexpected order")
-	}
-
-	if peerOrder.Id != res.RemainingOrder.Id {
-		return nil, errors.New("received order with inconsistent global id")
-	}
-
-	// Fetch nodes new order book state.
+	// Verify that a new order was added to the order books.
 	srcNodeCount, destNodeCount, err := getOrdersCount(ctx, srcNode, destNode)
-	if err != nil {
-		return nil, err
-	}
+	assert.NoError(err)
+	assert.Equal(srcNodeCount.Own, prevSrcNodeCount.Own+1)
+	assert.Equal(srcNodeCount.Peer, prevSrcNodeCount.Peer)
+	assert.Equal(destNodeCount.Own, prevDestNodeCount.Own)
+	assert.Equal(destNodeCount.Peer, prevDestNodeCount.Peer+1)
 
-	// Verify that a new order was added to the order book.
-	if srcNodeCount.Own != prevSrcNodeCount.Own+1 {
-		return nil, errors.New("added order is missing on the order count")
-	}
-
-	if destNodeCount.Peer != prevDestNodeCount.Peer+1 {
-		return nil, errors.New("added order is missing on the orders count")
-	}
-
-	return res.RemainingOrder, nil
+	return res.RemainingOrder
 }
 
-func RemoveOrderAndInvalidate(ctx context.Context, srcNode, destNode *xudtest.HarnessNode, order *xudrpc.Order) error {
+func RemoveOrderAndInvalidate(assert *require.Assertions, ctx context.Context, srcNode, destNode *xudtest.HarnessNode, order *xudrpc.Order) {
 	// 	Fetch nodes current order book state.
 	prevSrcNodeCount, prevDestNodeCount, err := getOrdersCount(ctx, srcNode, destNode)
-	if err != nil {
-		return err
-	}
+	assert.NoError(err)
 
-	// Subscribe to order removal on destNode.
-	destNodeOrderRemovalChan := subscribeOrderRemoval(ctx, destNode)
+	// Subscribe to removed orders on destNode.
+	destNodeRemovedOrdersChan := subscribeRemovedOrders(ctx, destNode)
 
 	// Remove the order on srcNode.
 	req := &xudrpc.RemoveOrderRequest{OrderId: order.OwnOrPeer.(*xudrpc.Order_LocalId).LocalId}
 	res, err := srcNode.Client.RemoveOrder(ctx, req)
-	if err != nil {
-		return fmt.Errorf("RemoveOrder: %v", err)
-	}
+	assert.NoError(err)
 
 	// Verify no quantity on hold.
-	if res.QuantityOnHold != 0 {
-		return errors.New("unexpected quantity on hold")
-	}
+	assert.Equal(res.QuantityOnHold, 0.0)
 
-	// Retrieve and verify the removed order on destNode.
-	r := <-destNodeOrderRemovalChan
-	if r.err != nil {
-		return r.err
-	}
-	orderRemoval := r.orderRemoval
+	// Retrieve and verify the removed orders event on destNode.
+	e := <-destNodeRemovedOrdersChan
+	assert.NoError(e.err)
+	assert.NotNil(e.orderRemoval)
 
-	if orderRemoval.LocalId != "" {
-		return errors.New("unexpected order removal LocalId")
-	}
+	// Verify the order removal.
+	assert.Empty(e.orderRemoval.LocalId)
+	assert.Equal(e.orderRemoval.Quantity, order.Quantity)
+	assert.Equal(e.orderRemoval.PairId, order.PairId)
+	assert.False(e.orderRemoval.IsOwnOrder)
 
-	if orderRemoval.OrderId != order.Id ||
-		orderRemoval.Quantity != order.Quantity ||
-		orderRemoval.PairId != order.PairId ||
-		orderRemoval.IsOwnOrder == true {
-		return errors.New("unexpected order removal")
-	}
-
-	// Fetch nodes new order book state.
+	// Verify that the order was removed from the order books.
 	srcNodeCount, destNodeCount, err := getOrdersCount(ctx, srcNode, destNode)
-	if err != nil {
-		return err
-	}
-
-	// Verify that a new order was added to the order book.
-	if srcNodeCount.Own != prevSrcNodeCount.Own-1 {
-		return errors.New("removed order exists on the order count")
-	}
-
-	if destNodeCount.Peer != prevDestNodeCount.Peer-1 {
-		return errors.New("removed order exists on the order count")
-	}
-
-	return nil
+	assert.NoError(err)
+	assert.Equal(srcNodeCount.Own, prevSrcNodeCount.Own-1)
+	assert.Equal(srcNodeCount.Peer, prevSrcNodeCount.Peer)
+	assert.Equal(destNodeCount.Own, prevDestNodeCount.Own)
+	assert.Equal(destNodeCount.Peer, prevDestNodeCount.Peer-1)
 }
 
-func PlaceOrderAndSwap(ctx context.Context, srcNode, destNode *xudtest.HarnessNode,
-	req *xudrpc.PlaceOrderRequest) error {
+func PlaceOrderAndSwap(assert *require.Assertions, ctx context.Context, srcNode, destNode *xudtest.HarnessNode,
+	req *xudrpc.PlaceOrderRequest) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -239,43 +160,24 @@ func PlaceOrderAndSwap(ctx context.Context, srcNode, destNode *xudtest.HarnessNo
 
 	// Place the order on srcNode and verify the result.
 	res, err := srcNode.Client.PlaceOrderSync(ctx, req)
-	if err != nil {
-		return err
-	}
+	assert.NoError(err)
+	assert.Len(res.InternalMatches, 0)
+	assert.Len(res.SwapSuccesses, 1)
+	assert.Nil(res.RemainingOrder)
 
-	if len(res.InternalMatches) != 0 {
-		return errors.New("PlaceOrderSync: unexpected internal matches")
-	}
+	// Retrieve and verify the swap events on both nodes.
+	eMaker := <-destNodeSwapChan
+	assert.NoError(eMaker.err)
+	assert.NotNil(eMaker.swap)
+	eTaker := <-srcNodeSwapChan
+	assert.NoError(eTaker.err)
+	assert.NotNil(eTaker.swap)
 
-	if res.RemainingOrder != nil {
-		return errors.New("PlaceOrderSync: unexpected remaining order")
-	}
+	// Verify that the swap event on the taker side is equal to PlaceOrder response swap.
+	assert.Equal(eTaker.swap, res.SwapSuccesses[0])
 
-	if len(res.SwapSuccesses) != 1 {
-		return errors.New("PlaceOrderSync: unexpected swap successes")
-	}
-
-	// Retrieve and verify the swap event on destNode.
-	makerEvent := <-destNodeSwapChan
-	if makerEvent.err != nil {
-		return makerEvent.err
-	}
-	makerSwap := makerEvent.swap
-
-	takerEvent := <-srcNodeSwapChan
-	if takerEvent.err != nil {
-		return takerEvent.err
-	}
-	takerSwap := takerEvent.swap
-
-	if !reflect.DeepEqual(takerEvent.swap, res.SwapSuccesses[0]) {
-		return errors.New("non-matching taker swap event and PlaceOrder response")
-	}
-
-	fmt.Printf("### %v\n\n", makerSwap)
-	fmt.Printf("### %v\n\n", takerSwap)
-
-	return nil
+	fmt.Printf("### %v\n\n", eTaker.swap)
+	fmt.Printf("### %v\n\n", eMaker.swap)
 }
 
 type subscribeAddedOrderResult struct {
@@ -329,7 +231,7 @@ type subscribeOrderRemovalResult struct {
 	err          error
 }
 
-func subscribeOrderRemoval(ctx context.Context, node *xudtest.HarnessNode) <-chan *subscribeOrderRemovalResult {
+func subscribeRemovedOrders(ctx context.Context, node *xudtest.HarnessNode) <-chan *subscribeOrderRemovalResult {
 	out := make(chan *subscribeOrderRemovalResult, 1)
 
 	// Synchronously subscribe to the node added orders.
@@ -429,28 +331,4 @@ func getInfo(ctx context.Context, n *xudtest.HarnessNode) (*xudrpc.GetInfoRespon
 	}
 
 	return info, nil
-}
-
-func assertPeersNum(p []*xudrpc.Peer, num int) error {
-	if len(p) != num {
-		return errors.New("invalid peers num")
-	}
-
-	return nil
-}
-
-func assertPeerInfo(p *xudrpc.Peer, n *xudtest.HarnessNode) error {
-	if p.NodePubKey != n.PubKey() {
-		return errors.New("invalid peer NodePubKey")
-	}
-
-	if p.LndBtcPubKey != n.LndBtcNode.PubKeyStr {
-		return errors.New("invalid peer LndBtcPubKey")
-	}
-
-	if p.LndLtcPubKey != n.LndLtcNode.PubKeyStr {
-		return errors.New("invalid peer LndLtcPubKey")
-	}
-
-	return nil
 }

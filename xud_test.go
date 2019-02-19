@@ -17,6 +17,7 @@ import (
 	btctest "github.com/roasbeef/btcd/integration/rpctest"
 	btcclient "github.com/roasbeef/btcd/rpcclient"
 	"github.com/roasbeef/btcutil"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 	"log"
 	"os"
@@ -42,12 +43,19 @@ type harnessTest struct {
 	// testCase is populated during test execution and represents the
 	// current test case.
 	testCase *testCase
+
+	// assertion methods to stop test execution upon failure.
+	assert *require.Assertions
 }
 
 // newHarnessTest creates a new instance of a harnessTest from a regular
 // testing.T instance.
 func newHarnessTest(t *testing.T) *harnessTest {
-	return &harnessTest{t, nil}
+	return &harnessTest{
+		t:        t,
+		testCase: nil,
+		assert:   require.New(t),
+	}
 }
 
 var testsCases = []*testCase{
@@ -99,11 +107,11 @@ func testConnectivity(net *xudtest.NetworkHarness, ht *harnessTest) {
 func testNetworkInit(net *xudtest.NetworkHarness, ht *harnessTest) {
 	ctx := context.Background()
 
-	for _, n := range net.ActiveNodes {
-		scenarios.AddPair(ctx, n, "LTC", "BTC", xudrpc.AddCurrencyRequest_LND)
+	for _, node := range net.ActiveNodes {
+		scenarios.AddPair(ht.assert, ctx, node, "LTC", "BTC", xudrpc.AddCurrencyRequest_LND)
 	}
 
-	scenarios.Connect(ctx, net.Alice, net.Bob)
+	scenarios.Connect(ht.assert, ctx, net.Alice, net.Bob)
 }
 
 func testOrderMatchingAndSwap(net *xudtest.NetworkHarness, ht *harnessTest) {
@@ -121,10 +129,7 @@ func testOrderMatchingAndSwap(net *xudtest.NetworkHarness, ht *harnessTest) {
 		Side:     xudrpc.OrderSide_BUY,
 	}
 
-	_, err := scenarios.PlaceOrderAndBroadcast(ctx, net.Alice, net.Bob, req)
-	if err != nil {
-		ht.Fatalf("%v", err)
-	}
+	scenarios.PlaceOrderAndBroadcast(ht.assert, ctx, net.Alice, net.Bob, req)
 
 	// Placing a matching order for Bob
 	req = &xudrpc.PlaceOrderRequest{
@@ -135,11 +140,7 @@ func testOrderMatchingAndSwap(net *xudtest.NetworkHarness, ht *harnessTest) {
 		Side:     xudrpc.OrderSide_SELL,
 	}
 
-	err = scenarios.PlaceOrderAndSwap(ctx, net.Bob, net.Alice, req)
-	if err != nil {
-		ht.Fatalf("%v", err)
-	}
-
+	scenarios.PlaceOrderAndSwap(ht.assert, ctx, net.Bob, net.Alice, req)
 }
 
 func testOrderBroadcastAndInvalidation(net *xudtest.NetworkHarness, ht *harnessTest) {
@@ -156,15 +157,11 @@ func testOrderBroadcastAndInvalidation(net *xudtest.NetworkHarness, ht *harnessT
 		Side:     xudrpc.OrderSide_BUY,
 	}
 
-	order, err := scenarios.PlaceOrderAndBroadcast(ctx, net.Alice, net.Bob, req)
-	if err != nil {
-		ht.Fatalf("%v", err)
-	}
+	order := scenarios.PlaceOrderAndBroadcast(ht.assert, ctx, net.Alice, net.Bob, req)
 
-	err = scenarios.RemoveOrderAndInvalidate(ctx, net.Alice, net.Bob, order)
-	if err != nil {
-		ht.Fatalf("%v", err)
-	}
+
+	scenarios.RemoveOrderAndInvalidate(ht.assert, ctx, net.Alice, net.Bob, order)
+
 }
 
 // Fatalf causes the current active test case to fail with a fatal error. All
