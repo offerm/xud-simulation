@@ -55,12 +55,8 @@ type harnessTest struct {
 
 // newHarnessTest creates a new instance of a harnessTest from a regular
 // testing.T instance.
-func newHarnessTest(t *testing.T) *harnessTest {
+func newHarnessTest(t *testing.T, ctx context.Context) *harnessTest {
 	assert := require.New(t)
-	ctx, _ := context.WithTimeout(
-		context.Background(),
-		time.Duration(5*time.Second),
-	)
 
 	return &harnessTest{
 		t:        t,
@@ -112,7 +108,7 @@ func testNetworkInit(net *xudtest.NetworkHarness, ht *harnessTest) {
 }
 
 func testOrderMatchingAndSwap(net *xudtest.NetworkHarness, ht *harnessTest) {
-	// Placing an order for Alice
+	// Place an order on Alice.
 	req := &xudrpc.PlaceOrderRequest{
 		Price:    10,
 		Quantity: 0.00000001,
@@ -120,10 +116,9 @@ func testOrderMatchingAndSwap(net *xudtest.NetworkHarness, ht *harnessTest) {
 		OrderId:  "random_order_id",
 		Side:     xudrpc.OrderSide_BUY,
 	}
-
 	ht.act.placeOrderAndBroadcast(ht.assert, ht.ctx, net.Alice, net.Bob, req)
 
-	// Placing a matching order for Bob
+	// Place a matching order on Bob.
 	req = &xudrpc.PlaceOrderRequest{
 		Price:    req.Price,
 		Quantity: req.Quantity,
@@ -131,7 +126,6 @@ func testOrderMatchingAndSwap(net *xudtest.NetworkHarness, ht *harnessTest) {
 		OrderId:  req.OrderId,
 		Side:     xudrpc.OrderSide_SELL,
 	}
-
 	ht.act.placeOrderAndSwap(ht.assert, ht.ctx, net.Bob, net.Alice, req)
 }
 
@@ -189,7 +183,7 @@ func (h *harnessTest) RunTestCase(testCase *testCase, net *xudtest.NetworkHarnes
 }
 
 func TestExchangeUnionDaemon(t *testing.T) {
-	ht := newHarnessTest(t)
+	ht := newHarnessTest(t, context.Background())
 	cfg := loadConfig()
 
 	log.Println("installing dependencies...")
@@ -402,9 +396,15 @@ func TestExchangeUnionDaemon(t *testing.T) {
 	// Run tests
 
 	t.Logf("Running %v integration tests", len(testsCases))
-	for _, testCase := range testsCases {
+
+	initialStates := make(map[int]*xudrpc.GetInfoResponse)
+	for i, testCase := range testsCases {
 		success := t.Run(testCase.name, func(t1 *testing.T) {
-			ht := newHarnessTest(t1)
+			ctx, _ := context.WithTimeout(
+				context.Background(),
+				time.Duration(5*time.Second),
+			)
+			ht := newHarnessTest(t1, ctx)
 			ht.RunTestCase(testCase, xudHarness)
 		})
 
@@ -412,6 +412,26 @@ func TestExchangeUnionDaemon(t *testing.T) {
 		// framework.
 		if !success {
 			break
+		}
+
+		// Save the nodes initial state after the initialization test.
+		// On all consecutive tests, verify that it hasn't changed,
+		// so that tests won't be affected by preceding ones.
+		if i == 0 {
+			for num, node := range xudHarness.ActiveNodes {
+				res, err := node.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
+				ht.assert.NoError(err)
+				initialStates[num] = res
+			}
+		} else {
+			for num, node := range xudHarness.ActiveNodes {
+				res, err := node.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
+				ht.assert.NoError(err)
+				initialState, ok := initialStates[num]
+				ht.assert.True(ok)
+
+				ht.assert.Equal(res, initialState, "test should not leave a node in altered state")
+			}
 		}
 	}
 }
