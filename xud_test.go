@@ -66,16 +66,12 @@ func newHarnessTest(t *testing.T) *harnessTest {
 		t:        t,
 		testCase: nil,
 		assert:   assert,
-		act: &actions{},
-		ctx: ctx,
+		act:      &actions{},
+		ctx:      ctx,
 	}
 }
 
 var testsCases = []*testCase{
-	{
-		name: "connectivity",
-		test: testConnectivity,
-	},
 	{
 		name: "network initialization",
 		test: testNetworkInit,
@@ -90,38 +86,28 @@ var testsCases = []*testCase{
 	},
 }
 
-func testConnectivity(net *xudtest.NetworkHarness, ht *harnessTest) {
-	for _, node := range net.ActiveNodes {
-		info, err := node.Client.GetInfo(ht.ctx, &xudrpc.GetInfoRequest{})
-		if err != nil {
-			ht.Fatalf("RPC GetInfo failure: %v", err)
-		}
-
-		if info.Lndbtc == nil {
-			ht.Fatalf("RPC GetInfo: lnd-btc not connected.")
-		}
-
-		if info.Lndltc == nil {
-			ht.Fatalf("RPC GetInfo: lnd-ltc not connected.")
-		}
-
-		if len(info.Lndbtc.Chains) != 1 || info.Lndbtc.Chains[0] != "bitcoin" {
-			ht.Fatalf("RPC GetInfo: invalid lnd-btc chain: %v", info.Lndbtc.Chains[0])
-		}
-
-		if len(info.Lndltc.Chains) != 1 || info.Lndltc.Chains[0] != "litecoin" {
-			ht.Fatalf("RPC GetInfo: invalid lnd-ltc chain: %v", info.Lndbtc.Chains[0])
-		}
-
-		node.SetPubKey(info.NodePubKey)
-	}
-}
-
 func testNetworkInit(net *xudtest.NetworkHarness, ht *harnessTest) {
 	for _, node := range net.ActiveNodes {
+
+		// Verify connectivity.
+		req := &xudrpc.GetInfoRequest{}
+		res, err := node.Client.GetInfo(ht.ctx, req)
+		ht.assert.NoError(err)
+		ht.assert.NotNil(res.Lndbtc)
+		ht.assert.NotNil(res.Lndltc)
+		ht.assert.Len(res.Lndbtc.Chains, 1)
+		ht.assert.Equal(res.Lndbtc.Chains[0], "bitcoin")
+		ht.assert.Len(res.Lndltc.Chains, 1)
+		ht.assert.Equal(res.Lndltc.Chains[0], "litecoin")
+
+		// Set the node public key.
+		node.SetPubKey(res.NodePubKey)
+
+		// Add pair to the node.
 		ht.act.addPair(ht.assert, ht.ctx, node, "LTC", "BTC", xudrpc.AddCurrencyRequest_LND)
 	}
 
+	// Connect Alice to Bob.
 	ht.act.connect(ht.assert, ht.ctx, net.Alice, net.Bob)
 }
 
