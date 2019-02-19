@@ -1,4 +1,4 @@
-package scenarios
+package main
 
 import (
 	"context"
@@ -9,7 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func AddPair(assert *require.Assertions, ctx context.Context, node *xudtest.HarnessNode, baseCurrency string, quoteCurrency string,
+type actions struct {}
+
+func (a *actions) addPair(assert *require.Assertions, ctx context.Context, node *xudtest.HarnessNode, baseCurrency string, quoteCurrency string,
 	swapClient xudrpc.AddCurrencyRequest_SwapClient) {
 	// Check the current number of pairs.
 	resInfo, err := node.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
@@ -37,13 +39,13 @@ func AddPair(assert *require.Assertions, ctx context.Context, node *xudtest.Harn
 	assert.Equal(resGetInfo.NumPairs, prevNumPairs+1)
 }
 
-func Connect(assert *require.Assertions, ctx context.Context, srcNode, destNode *xudtest.HarnessNode) {
+func (*actions) connect(assert *require.Assertions, ctx context.Context, srcNode, destNode *xudtest.HarnessNode) {
 	destNodeUri := fmt.Sprintf("%v@%v",
 		destNode.PubKey(),
 		destNode.Cfg.P2PAddr(),
 	)
 
-	// Connect srcNode to destNode.
+	// connect srcNode to destNode.
 	reqConn := &xudrpc.ConnectRequest{NodeUri: destNodeUri}
 	_, err := srcNode.Client.Connect(ctx, reqConn)
 	assert.NoError(err)
@@ -65,7 +67,7 @@ func Connect(assert *require.Assertions, ctx context.Context, srcNode, destNode 
 	assert.Equal(resListPeers.Peers[0].LndLtcPubKey, srcNode.LndLtcNode.PubKeyStr)
 }
 
-func PlaceOrderAndBroadcast(assert *require.Assertions, ctx context.Context, srcNode, destNode *xudtest.HarnessNode,
+func (*actions) placeOrderAndBroadcast(assert *require.Assertions, ctx context.Context, srcNode, destNode *xudtest.HarnessNode,
 	req *xudrpc.PlaceOrderRequest) *xudrpc.Order {
 	// 	Fetch nodes current order book state.
 	prevSrcNodeCount, prevDestNodeCount, err := getOrdersCount(ctx, srcNode, destNode)
@@ -93,7 +95,7 @@ func PlaceOrderAndBroadcast(assert *require.Assertions, ctx context.Context, src
 	peerOrder := e.order
 
 	// Verify the peer order.
-	assert.NotEqual(peerOrder.Id, req.OrderId) 	// Local id should not equal the global id.
+	assert.NotEqual(peerOrder.Id, req.OrderId) // Local id should not equal the global id.
 	assert.Equal(peerOrder.Price, req.Price)
 	assert.Equal(peerOrder.PairId, req.PairId)
 	assert.Equal(peerOrder.Quantity, req.Quantity)
@@ -114,7 +116,7 @@ func PlaceOrderAndBroadcast(assert *require.Assertions, ctx context.Context, src
 	return res.RemainingOrder
 }
 
-func RemoveOrderAndInvalidate(assert *require.Assertions, ctx context.Context, srcNode, destNode *xudtest.HarnessNode, order *xudrpc.Order) {
+func (*actions) removeOrderAndInvalidate(assert *require.Assertions, ctx context.Context, srcNode, destNode *xudtest.HarnessNode, order *xudrpc.Order) {
 	// 	Fetch nodes current order book state.
 	prevSrcNodeCount, prevDestNodeCount, err := getOrdersCount(ctx, srcNode, destNode)
 	assert.NoError(err)
@@ -150,7 +152,7 @@ func RemoveOrderAndInvalidate(assert *require.Assertions, ctx context.Context, s
 	assert.Equal(destNodeCount.Peer, prevDestNodeCount.Peer-1)
 }
 
-func PlaceOrderAndSwap(assert *require.Assertions, ctx context.Context, srcNode, destNode *xudtest.HarnessNode,
+func (*actions) placeOrderAndSwap(assert *require.Assertions, ctx context.Context, srcNode, destNode *xudtest.HarnessNode,
 	req *xudrpc.PlaceOrderRequest) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

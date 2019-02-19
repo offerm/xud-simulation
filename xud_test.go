@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/ExchangeUnion/xud-simulation/lntest"
-	"github.com/ExchangeUnion/xud-simulation/scenarios"
 	"github.com/ExchangeUnion/xud-simulation/xudrpc"
 	"github.com/ExchangeUnion/xud-simulation/xudtest"
 	"github.com/go-errors/errors"
@@ -44,17 +43,31 @@ type harnessTest struct {
 	// current test case.
 	testCase *testCase
 
-	// assertion methods to stop test execution upon failure.
+	// assert provides assertion methods to stop test execution upon failure.
 	assert *require.Assertions
+
+	// act provides collection of predefined actions to be used in the test scenario.
+	act *actions
+
+	// ctx is the context for the entire test scenario.
+	ctx context.Context
 }
 
 // newHarnessTest creates a new instance of a harnessTest from a regular
 // testing.T instance.
 func newHarnessTest(t *testing.T) *harnessTest {
+	assert := require.New(t)
+	ctx, _ := context.WithTimeout(
+		context.Background(),
+		time.Duration(5*time.Second),
+	)
+
 	return &harnessTest{
 		t:        t,
 		testCase: nil,
-		assert:   require.New(t),
+		assert:   assert,
+		act: &actions{},
+		ctx: ctx,
 	}
 }
 
@@ -79,7 +92,7 @@ var testsCases = []*testCase{
 
 func testConnectivity(net *xudtest.NetworkHarness, ht *harnessTest) {
 	for _, node := range net.ActiveNodes {
-		info, err := node.Client.GetInfo(context.Background(), &xudrpc.GetInfoRequest{})
+		info, err := node.Client.GetInfo(ht.ctx, &xudrpc.GetInfoRequest{})
 		if err != nil {
 			ht.Fatalf("RPC GetInfo failure: %v", err)
 		}
@@ -105,21 +118,14 @@ func testConnectivity(net *xudtest.NetworkHarness, ht *harnessTest) {
 }
 
 func testNetworkInit(net *xudtest.NetworkHarness, ht *harnessTest) {
-	ctx := context.Background()
-
 	for _, node := range net.ActiveNodes {
-		scenarios.AddPair(ht.assert, ctx, node, "LTC", "BTC", xudrpc.AddCurrencyRequest_LND)
+		ht.act.addPair(ht.assert, ht.ctx, node, "LTC", "BTC", xudrpc.AddCurrencyRequest_LND)
 	}
 
-	scenarios.Connect(ht.assert, ctx, net.Alice, net.Bob)
+	ht.act.connect(ht.assert, ht.ctx, net.Alice, net.Bob)
 }
 
 func testOrderMatchingAndSwap(net *xudtest.NetworkHarness, ht *harnessTest) {
-	ctx, _ := context.WithTimeout(
-		context.Background(),
-		time.Duration(5*time.Second),
-	)
-
 	// Placing an order for Alice
 	req := &xudrpc.PlaceOrderRequest{
 		Price:    10,
@@ -129,7 +135,7 @@ func testOrderMatchingAndSwap(net *xudtest.NetworkHarness, ht *harnessTest) {
 		Side:     xudrpc.OrderSide_BUY,
 	}
 
-	scenarios.PlaceOrderAndBroadcast(ht.assert, ctx, net.Alice, net.Bob, req)
+	ht.act.placeOrderAndBroadcast(ht.assert, ht.ctx, net.Alice, net.Bob, req)
 
 	// Placing a matching order for Bob
 	req = &xudrpc.PlaceOrderRequest{
@@ -140,15 +146,10 @@ func testOrderMatchingAndSwap(net *xudtest.NetworkHarness, ht *harnessTest) {
 		Side:     xudrpc.OrderSide_SELL,
 	}
 
-	scenarios.PlaceOrderAndSwap(ht.assert, ctx, net.Bob, net.Alice, req)
+	ht.act.placeOrderAndSwap(ht.assert, ht.ctx, net.Bob, net.Alice, req)
 }
 
 func testOrderBroadcastAndInvalidation(net *xudtest.NetworkHarness, ht *harnessTest) {
-	ctx, _ := context.WithTimeout(
-		context.Background(),
-		time.Duration(5*time.Second),
-	)
-
 	req := &xudrpc.PlaceOrderRequest{
 		Price:    10,
 		Quantity: 10,
@@ -157,11 +158,9 @@ func testOrderBroadcastAndInvalidation(net *xudtest.NetworkHarness, ht *harnessT
 		Side:     xudrpc.OrderSide_BUY,
 	}
 
-	order := scenarios.PlaceOrderAndBroadcast(ht.assert, ctx, net.Alice, net.Bob, req)
+	order := ht.act.placeOrderAndBroadcast(ht.assert, ht.ctx, net.Alice, net.Bob, req)
 
-
-	scenarios.RemoveOrderAndInvalidate(ht.assert, ctx, net.Alice, net.Bob, order)
-
+	ht.act.removeOrderAndInvalidate(ht.assert, ht.ctx, net.Alice, net.Bob, order)
 }
 
 // Fatalf causes the current active test case to fail with a fatal error. All
