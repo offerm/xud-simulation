@@ -178,8 +178,19 @@ func (*actions) placeOrderAndSwap(assert *require.Assertions, ctx context.Contex
 	// Verify that the swap event on the taker side is equal to PlaceOrder response swap.
 	assert.Equal(eTaker.swap, res.SwapSuccesses[0])
 
-	fmt.Printf("### %v\n\n", eTaker.swap)
-	fmt.Printf("### %v\n\n", eMaker.swap)
+	// Verify the swap events info.
+	assert.Equal(eMaker.swap.OrderId, eTaker.swap.OrderId)
+	assert.NotEqual(eMaker.swap.LocalId, eTaker.swap.LocalId)
+	assert.Equal(eMaker.swap.PairId, eTaker.swap.PairId)
+	assert.Equal(eMaker.swap.Quantity, eTaker.swap.Quantity)
+	assert.Equal(eMaker.swap.RHash, eTaker.swap.RHash)
+
+	assert.Equal(eMaker.swap.PeerPubKey, srcNode.PubKey())
+	assert.Equal(eTaker.swap.PeerPubKey, destNode.PubKey())
+
+	// TODO: add assertions on currency/amount
+	//fmt.Printf("### taker: %v\n\n", eTaker.swap)
+	//fmt.Printf("### maker: %v\n\n", eMaker.swap)
 }
 
 type subscribeAddedOrdersEvent struct {

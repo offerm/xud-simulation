@@ -109,20 +109,20 @@ func testNetworkInit(net *xudtest.NetworkHarness, ht *harnessTest) {
 func testOrderMatchingAndSwap(net *xudtest.NetworkHarness, ht *harnessTest) {
 	// Place an order on Alice.
 	req := &xudrpc.PlaceOrderRequest{
+		OrderId:  "maker_order_id",
 		Price:    10,
 		Quantity: 0.00000001,
 		PairId:   "LTC/BTC",
-		OrderId:  "random_order_id",
 		Side:     xudrpc.OrderSide_BUY,
 	}
 	ht.act.placeOrderAndBroadcast(ht.assert, ht.ctx, net.Alice, net.Bob, req)
 
 	// Place a matching order on Bob.
 	req = &xudrpc.PlaceOrderRequest{
+		OrderId:  "taker_order_id",
 		Price:    req.Price,
 		Quantity: req.Quantity,
 		PairId:   req.PairId,
-		OrderId:  req.OrderId,
 		Side:     xudrpc.OrderSide_SELL,
 	}
 	ht.act.placeOrderAndSwap(ht.assert, ht.ctx, net.Bob, net.Alice, req)
@@ -426,7 +426,7 @@ func TestExchangeUnionDaemon(t *testing.T) {
 				initialState, ok := initialStates[num]
 				ht.assert.True(ok)
 
-				msg := "test should not leave a node in altered state"
+				msg := fmt.Sprintf("test should not leave a node (%v) in altered state", node.Name)
 				ht.assert.Equal(initialState.Version, res.Version, msg)
 				ht.assert.Equal(initialState.NodePubKey, res.NodePubKey, msg)
 				ht.assert.Equal(initialState.NumPeers, res.NumPeers, msg)

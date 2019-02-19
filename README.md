@@ -47,4 +47,5 @@ GO111MODULE=on go test -v
 - [ ] Updated `LND-BTC`/`LND-LTC` public keys should propagate over the network.
 
 ### Swaps
+- [x] Placed order should trigger a swap.
 - [ ] Placed order should trigger a swap and order invalidation on the maker order to all connected peers besides the taker peer.
