@@ -32,7 +32,7 @@ if ! mkdir go
 then
     echo "lnd already installed"
 else
-    export GOPATH=~/go/src/github.com/ExchangeUnion/xud-simulation/go
+    export GOPATH=$GOPATH/src/github.com/ExchangeUnion/xud-simulation/go
 
     echo "starting lnd clone..."
     if ! git clone -b resolver-cmd+simnet-ltcd https://github.com/ExchangeUnion/lnd.git  $GOPATH/src/github.com/lightningnetwork/lnd > /dev/null 2>&1; then
@@ -42,7 +42,7 @@ else
     echo "finished lnd clone"
 
     echo "starting lnd make..."
-    cd go/src/github.com/lightningnetwork/lnd
+    cd $GOPATH/go/src/github.com/lightningnetwork/lnd
     if ! make > /dev/null 2>&1 ; then
         echo "unable to make lnd"
         exit 1
